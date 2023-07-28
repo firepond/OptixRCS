@@ -25,6 +25,11 @@
 #include "tiny_obj_loader.h"
 #include "triangles_rcs.h"
 
+using std::chrono::high_resolution_clock;
+using std::chrono::duration_cast;
+using std::chrono::duration;
+using std::chrono::milliseconds;
+
 using std::complex;
 using std::cout;
 using std::endl;
@@ -781,18 +786,29 @@ int main(int argc, char* argv[]) {
         params.box_center = center;
 
         CUdeviceptr d_param;
+
+        auto optix_start = high_resolution_clock::now();
+  
         CUDA_CHECK(
             cudaMalloc(reinterpret_cast<void**>(&d_param), sizeof(Params)));
         CUDA_CHECK(cudaMemcpy(reinterpret_cast<void*>(d_param), &params,
                               sizeof(Params), cudaMemcpyHostToDevice));
 
+
+
         OPTIX_CHECK(optixLaunch(pipeline, stream, d_param, sizeof(Params), &sbt,
                                 rays_per_dimension, rays_per_dimension, /*depth=*/1));
         CUDA_SYNC_CHECK();
 
+        auto optix_end = high_resolution_clock::now();
+        auto ms_int = duration_cast<milliseconds>(optix_end - optix_start);
+        std::cout <<"optix time usage: " << ms_int.count() << "ms\n";
+
+
+
         result.unmap();
         Result* resultBuffer = result.getHostPointer();
-
+        auto sum_start = high_resolution_clock::now();
         complex<double> au = 0;
         complex<double> ar = 0;
         int hit_count = 0;
@@ -804,12 +820,17 @@ int main(int argc, char* argv[]) {
                 ar += complex<double>(cur_result.ar_real, cur_result.ar_img);
             }
         }
-        cout << "hit count: " << hit_count << endl;
 
         double ausq = pow(abs(au), 2);
         double arsq = pow(abs(ar), 2);
         double rcs_ori = 4.0 * M_PI * (ausq + arsq);  // * 4 * pi
         double rcs = 10 * log10(rcs_ori);
+
+        auto sum_end = high_resolution_clock::now();
+        ms_int = duration_cast<milliseconds>(sum_end - sum_start);
+        std::cout << "rcs sum time usage: " << ms_int.count() << "ms\n";
+
+
         // phi and rcs
         cout << "rcs: " << rcs << endl;
         cout << "rcs ori : " << rcs_ori << endl;
