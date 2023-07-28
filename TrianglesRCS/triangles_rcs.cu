@@ -9,9 +9,6 @@
 #include "sphere.h"
 #include "triangles_rcs.h"
 
-#define float3_as_ints(u) \
-    float_as_int(u.x), float_as_int(u.y), float_as_int(u.z)
-
 extern "C" {
 __constant__ Params params;
 }
@@ -108,7 +105,7 @@ static __forceinline__ __device__ void computeRay(uint3 idx, uint3 dim,
     dirR = normalize(dirR - dot(dirR, dirN) * dirN);
     dirR = normalize(dirR - dot(dirR, dirU) * dirU);
 
-    float3 boundBoxCenter = params.boxCenter;
+    float3 boundBoxCenter = params.box_center;
     float boundBoxRadius = outDirSph.x;
     float3 rayPoolCenter = boundBoxCenter + dirN * 2.0 * boundBoxRadius;
     float3 rayPoolRectMin = rayPoolCenter - (dirR + dirU) * boundBoxRadius;

@@ -21,8 +21,8 @@
 #include <string>
 #include <vector>
 
-#include "triangles_rcs.h"
 #include "tiny_obj_loader.h"
+#include "triangles_rcs.h"
 
 using std::complex;
 using std::cout;
@@ -403,12 +403,11 @@ int main(int argc, char* argv[]) {
     string testfile = "corner_reflector";
     // string testfile = "d_reflector";
     // string testfile = "pone_0253743_model_cuboid_and_semishpere";
-    string obj_file = "C:/development/optix/OptixRCS/resources/" +
-                      testfile + ".obj";
+    string obj_file =
+        "C:/development/optix/OptixRCS/resources/" + testfile + ".obj";
 
     std::ofstream outtext;
-    outtext.open("C:/development/optix/OptixRCS/output/rcs.csv",
-                 std::ios::app);
+    outtext.open("C:/development/optix/OptixRCS/output/rcs.csv", std::ios::app);
 
     OptixAabb aabb;
     std::vector<float3> vertices;
@@ -427,18 +426,23 @@ int main(int argc, char* argv[]) {
              pow((minMesh.z - maxMesh.z), 2));
 
     float radius = distance / 2;
-
-    float phi = std::atof(argv[1]);
+    float phi = 45;
+    float theta = 60;
+    int width = 3000;
+    if (argc > 1) {
+        phi = std::atof(argv[1]);
+        theta = std::atof(argv[2]);
+        width = std::stoi(argv[3]);
+    }
     // float phi = 45;
     // float theta = 60;
-    float theta = std::atof(argv[2]);
+
     // float theta = std::stoi(argv[1]);
     float thetaRadian = theta * M_PIf / 180.0;  // radian of elevation
     // float range = 1.5f;
     // float range = 1000;
 
     // int width = 3000;
-    int width = std::stoi(argv[3]);
     int height = width;
     int num_sphere = 1;  // 101
 
@@ -781,7 +785,7 @@ int main(int argc, char* argv[]) {
         params.image_height = height;
         params.handle = ias.handle;
         params.cam_eye = cam_pos;
-        params.boxCenter = center;
+        params.box_center = center;
 
         // float phiRadian = phi * M_PI / 180.0; // radian of phi
         // float3 cam_pos = make_float3(range, phiRadian, thetaRadian);
@@ -833,6 +837,8 @@ int main(int argc, char* argv[]) {
         cout << "rcs ori : " << rcs_ori << endl;
         cout << "au : " << au << endl;
         cout << "ar : " << ar << endl;
+        cout << phi << ", " << theta << ", " << width << ", " << rcs << ", "
+             << hit_count << endl;
         outtext << phi << ", " << theta << ", " << width << ", " << rcs << ", "
                 << hit_count << endl;
         //}
