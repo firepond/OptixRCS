@@ -428,22 +428,15 @@ int main(int argc, char* argv[]) {
     float radius = distance / 2;
     float phi = 45;
     float theta = 60;
-    int width = 3000;
+    int rays_per_dimension = 3000;
     if (argc > 1) {
         phi = std::atof(argv[1]);
         theta = std::atof(argv[2]);
-        width = std::stoi(argv[3]);
+        rays_per_dimension = std::stoi(argv[3]);
     }
-    // float phi = 45;
-    // float theta = 60;
 
-    // float theta = std::stoi(argv[1]);
     float thetaRadian = theta * M_PIf / 180.0;  // radian of elevation
-    // float range = 1.5f;
-    // float range = 1000;
 
-    // int width = 3000;
-    int height = width;
     int num_sphere = 1;  // 101
 
     float phiRadian = phi * M_PIf / 180.0;  // radian of phi
@@ -772,7 +765,7 @@ int main(int argc, char* argv[]) {
         }
 
         sutil::CUDAOutputBuffer<Result> result(
-            sutil::CUDAOutputBufferType::CUDA_DEVICE, width, height);
+            sutil::CUDAOutputBufferType::CUDA_DEVICE, rays_per_dimension, rays_per_dimension);
         //
         // launch
         //
@@ -781,8 +774,7 @@ int main(int argc, char* argv[]) {
         result.setStream(stream);
         Params params;
         params.result = result.map();
-        params.image_width = width;
-        params.image_height = height;
+        params.rays_per_dimension = rays_per_dimension;
         params.handle = ias.handle;
         params.cam_eye = cam_pos;
         params.box_center = center;
@@ -803,10 +795,10 @@ int main(int argc, char* argv[]) {
                               sizeof(Params), cudaMemcpyHostToDevice));
 
         OPTIX_CHECK(optixLaunch(pipeline, stream, d_param, sizeof(Params), &sbt,
-                                width, height, /*depth=*/1));
+                                rays_per_dimension, rays_per_dimension, /*depth=*/1));
         CUDA_SYNC_CHECK();
 
-        // int N = width * width;
+        // int N = rays_per_dimension * rays_per_dimension;
         // int threadsPerBlock = 256;
         // int blocksPerGrid =
         //	(N + threadsPerBlock - 1) / threadsPerBlock;
@@ -818,7 +810,7 @@ int main(int argc, char* argv[]) {
         complex<double> au = 0;
         complex<double> ar = 0;
         int hit_count = 0;
-        for (int i = 0; i < width * width; i++) {
+        for (int i = 0; i < rays_per_dimension * rays_per_dimension; i++) {
             Result cur_result = resultBuffer[i];
             if (cur_result.refCount > 0) {
                 hit_count++;
@@ -837,9 +829,9 @@ int main(int argc, char* argv[]) {
         cout << "rcs ori : " << rcs_ori << endl;
         cout << "au : " << au << endl;
         cout << "ar : " << ar << endl;
-        cout << phi << ", " << theta << ", " << width << ", " << rcs << ", "
+        cout << phi << ", " << theta << ", " << rays_per_dimension << ", " << rcs << ", "
              << hit_count << endl;
-        outtext << phi << ", " << theta << ", " << width << ", " << rcs << ", "
+        outtext << phi << ", " << theta << ", " << rays_per_dimension << ", " << rcs << ", "
                 << hit_count << endl;
         //}
 

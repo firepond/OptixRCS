@@ -68,8 +68,8 @@ static __forceinline__ __device__ float3 sphericalToCartesian(float3 point) {
     float r = point.x;
     float phi = point.y;
     float theta = point.z;
-    float3 res = make_float3(r * sin(theta) * cos(phi),
-                             r * sin(theta) * sin(phi), r * cos(theta));
+    float3 res = make_float3(r * sinf(theta) * cosf(phi),
+                             r * sinf(theta) * sinf(phi), r * cosf(theta));
     return res;
 }
 
@@ -111,7 +111,7 @@ static __forceinline__ __device__ void computeRay(uint3 idx, uint3 dim,
     float3 rayPoolRectMin = rayPoolCenter - (dirR + dirU) * boundBoxRadius;
     float3 rayPoolRectMax = rayPoolCenter + (dirR + dirU) * boundBoxRadius;
 
-    int rayCountSqrt = params.image_height;
+    int rayCountSqrt = params.rays_per_dimension;
 
     float rayTubeRadius = boundBoxRadius / rayCountSqrt;
     float rayTubeDiameter = rayTubeRadius * 2.0f;
@@ -183,7 +183,7 @@ extern "C" __global__ void __miss__ms() {
     float waveLen = c0 / freq;
     float waveNum = 2 * M_PIf / waveLen;
 
-    float rayRadius = params.cam_eye.x / params.image_height;
+    float rayRadius = params.cam_eye.x / params.rays_per_dimension;
     float rayDiameter = rayRadius * 2;
 
     float rayArea = rayDiameter * rayDiameter;

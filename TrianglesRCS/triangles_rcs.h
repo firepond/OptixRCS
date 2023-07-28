@@ -9,8 +9,7 @@ struct Result {
 
 struct Params {
     Result* result;
-    unsigned int image_width;
-    unsigned int image_height;
+    unsigned int rays_per_dimension;
     // r, phi, theta
     float3 cam_eye;
     float3 box_center;
