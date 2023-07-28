@@ -20,6 +20,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <chrono>
 
 #include "tiny_obj_loader.h"
 #include "triangles_rcs.h"
@@ -779,15 +780,6 @@ int main(int argc, char* argv[]) {
         params.cam_eye = cam_pos;
         params.box_center = center;
 
-        // float phiRadian = phi * M_PI / 180.0; // radian of phi
-        // float3 cam_pos = make_float3(range, phiRadian, thetaRadian);
-
-        // float z = range * sin(thetaRadian);
-        // float r = range * cos(thetaRadian);
-        // float x = r * cos(phiRadian);
-        // float y = r * sin(phiRadian);
-        // cout << "phi: " << phi << ", x: " << x << ", y: " << y << endl;
-
         CUdeviceptr d_param;
         CUDA_CHECK(
             cudaMalloc(reinterpret_cast<void**>(&d_param), sizeof(Params)));
@@ -797,12 +789,6 @@ int main(int argc, char* argv[]) {
         OPTIX_CHECK(optixLaunch(pipeline, stream, d_param, sizeof(Params), &sbt,
                                 rays_per_dimension, rays_per_dimension, /*depth=*/1));
         CUDA_SYNC_CHECK();
-
-        // int N = rays_per_dimension * rays_per_dimension;
-        // int threadsPerBlock = 256;
-        // int blocksPerGrid =
-        //	(N + threadsPerBlock - 1) / threadsPerBlock;
-        // reduce0<<<blocksPerGrid, threadsPerBlock>>>(d_param);
 
         result.unmap();
         Result* resultBuffer = result.getHostPointer();
@@ -833,7 +819,7 @@ int main(int argc, char* argv[]) {
              << hit_count << endl;
         outtext << phi << ", " << theta << ", " << rays_per_dimension << ", " << rcs << ", "
                 << hit_count << endl;
-        //}
+   
 
         outtext.close();
 
@@ -845,7 +831,6 @@ int main(int argc, char* argv[]) {
             CUDA_CHECK(cudaFree(reinterpret_cast<void*>(sbt.missRecordBase)));
             CUDA_CHECK(
                 cudaFree(reinterpret_cast<void*>(sbt.hitgroupRecordBase)));
-            // CUDA_CHECK(cudaFree(reinterpret_cast<void*>(d_gas_output_buffer)));
 
             OPTIX_CHECK(optixPipelineDestroy(pipeline));
             OPTIX_CHECK(optixProgramGroupDestroy(hitgroup_prog_group_triangle));
