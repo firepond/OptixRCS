@@ -175,7 +175,7 @@ extern "C" __global__ void __miss__ms() {
 	int ray_id = pldptr->ray_id;
 
 	float c0 = 299792458.0;
-	float freq = c0 * 10;
+	float freq = params.freq;
 
 	float angFreq = 2 * M_PIf * freq;
 	float waveLen = c0 / freq;
