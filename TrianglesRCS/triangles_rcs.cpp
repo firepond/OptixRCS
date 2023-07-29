@@ -43,11 +43,6 @@ int main(int argc, char* argv[]) {
 	string test_model = "corner_reflector";
 
 	string rootPathPrefix = "C:/development/optix/OptixRCS";
-	string obj_file = rootPathPrefix + "/resources/" + test_model + ".obj";
-	string csv_file = rootPathPrefix + "/output/" + test_model + "_rcs.csv";
-
-	std::ofstream out_stream;
-	out_stream.open(csv_file, std::ios::app);
 
 	double c = 299792458.0;
 	int rays_per_dimension = 3000;
@@ -63,6 +58,41 @@ int main(int argc, char* argv[]) {
 	double theta_end = 60;
 	double theta_interval = 1;
 
+	if (argc > 1) {
+		// list structure: numpy style [start:end:step]
+		freq = atof(argv[1]);
+
+		string phi_str = string(argv[2]);
+		vector<double> phi_result;
+		std::stringstream phi_ss(phi_str);
+		string token;
+
+		while (std::getline(phi_ss, token, ',')) {
+			phi_result.push_back(std::stod(token));
+		}
+		phi_start = phi_result[0];
+		phi_end = phi_result[1];
+		phi_interval = phi_result[2];
+
+		string theta_str = string(argv[3]);
+		vector<double> theta_result;
+		std::stringstream theta_ss(theta_str);
+
+		while (std::getline(theta_ss, token, ',')) {
+			theta_result.push_back(std::stod(token));
+		}
+		theta_start = theta_result[0];
+		theta_end = theta_result[1];
+		theta_interval = theta_result[2];
+
+		test_model = string(argv[4]);
+	}
+
+	string obj_file = rootPathPrefix + "/resources/" + test_model + ".obj";
+	string csv_file = rootPathPrefix + "/output/" + test_model + "_rcs.csv";
+
+	std::ofstream out_stream;
+	out_stream.open(csv_file);
 
 	OptixAabb aabb;
 	vector<float3> vertices;
@@ -76,39 +106,16 @@ int main(int argc, char* argv[]) {
 
 	float3 center = (min_mesh + max_mesh) / 2;
 	double radius = length(min_mesh - max_mesh) / 2.0f;
+	cout << "model: " << test_model << endl;
+	cout << "Radius: " << radius << endl;
 
-
-	if (argc > 1) {
-		// list structure: numpy style [start:end:step]
-		double freq = atof(argv[1]);
-
-		string phi_str = string(argv[2]);
-		int check = 0;
-		check = sscanf(phi_str.c_str(), "%lf:%lf:%lf", &phi_start, &phi_end, &phi_interval);
-		if (check != 0) {
-			cout << phi_str << endl;
-			cout << "Invalid parameters for phi, aborting" << endl;
-			cout << "Parameter format: [star:end:step]" << endl;
-			return -1;
-		}
-
-		string theta_str = string(argv[3]);
-		check = 0;
-		check = sscanf(theta_str.c_str(), "%lf:%lf:%lf", &theta_start, &theta_end, &theta_interval);
-		if (check != 0) {
-			cout << "Invalid parameters for theta, aborting" << endl;
-			cout << "Parameter format: [star:end:step]" << endl;
-			return -1;
-		}
-
-		test_model = string(argv[4]);
-	}
 
 	int phi_count = (int)(phi_end - phi_start) / phi_interval + 1;
 	int theta_count = (int)(theta_end - theta_start) / theta_interval + 1;
 
-	//double lambda = c / freq;
-	//int rays_per_lamada = 100;
+	int rays_per_lamada = 100;
+	cout << "Phi: [" << phi_start << ":" << phi_end << ":" << phi_count << "]" << endl;
+	cout << "Theta: [" << theta_start << ":" << theta_end << ":" << theta_count << "]" << endl;
 
 
 	// [0, (phi_count-1)]
@@ -123,7 +130,7 @@ int main(int argc, char* argv[]) {
 
 			float3 observer_pos = make_float3(radius, phi_radian, theta_radian);
 
-			double rcs_ori = CalculateRcs(vertices, mesh_indices, observer_pos, rays_per_dimension, center, freq);
+			double rcs_ori = CalculateRcs(vertices, mesh_indices, observer_pos, rays_per_lamada, center, freq);
 			//double rcs_ori = 100.0f;
 
 			double rcs = 10 * log10(rcs_ori);
@@ -134,7 +141,7 @@ int main(int argc, char* argv[]) {
 			cout << "phi = " << cur_phi << ", ";
 			cout << "theta = " << cur_theta << ", ";
 			cout << "rcs_dbsm = " << rcs << ", ";
-			cout << "rcs_sm = " << rcs_ori << endl;
+			cout << "rcs_sm = " << rcs_ori << endl << endl;
 			out_stream << freq << ", " << cur_phi << ", " << cur_theta << ", " << rcs << ", " << endl;
 
 		}

@@ -1,15 +1,13 @@
 import subprocess
 
-model = "corner_reflector"
-rcs_file = model + '_rcs.csv'
-open(rcs_file, "w").close()
-
-exePath = "C://development//optix//OptixRCS//build//bin//Release//TrianglesRcs.exe"
-phi = "[0:90:1]"
-# phi = ""
-theta = "[60:60:1]"
-# theta = ""
-freq = "3E9"
+# model = "corner_reflector"
 model = "d_reflector"
+rcs_file = "output/" + model + '_rcs.csv'
+exePath = "C://development//optix//OptixRCS//build//bin//Debug//TrianglesRcs.exe"
+
+
+phi = "90,90,1"
+theta = "90,90,1"
+freq = "15E9"
 subprocess.run([exePath, str(freq), str(phi), str(theta), model])
 print(model, freq, phi, theta)

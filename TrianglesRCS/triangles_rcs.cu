@@ -40,14 +40,14 @@ struct Payload {
 	float3 refNormal;
 };
 
-static __forceinline__ __device__ void trace2(
+static __forceinline__ __device__ void trace(
 	OptixTraversableHandle handle, float3 ray_origin, float3 ray_direction,
-	Payload* prd, int offset, int stride, int miss) {
+	Payload* pld_ptr, int offset, int stride, int miss) {
 	unsigned int p0, p1;
-	packPointer(prd, p0, p1);
-	float tmin2 = 1e-5f;
-	float tmax2 = 1e30f;
-	optixTrace(handle, ray_origin, ray_direction, tmin2, tmax2,
+	packPointer(pld_ptr, p0, p1);
+	float tmin = 1e-5f;
+	float tmax = 1e30f;
+	optixTrace(handle, ray_origin, ray_direction, tmin, tmax,
 		0.0f,  // rayTime
 		OptixVisibilityMask(1), OPTIX_RAY_FLAG_DISABLE_ANYHIT,
 		offset,  // SBT offset
@@ -161,7 +161,7 @@ extern "C" __global__ void __raygen__rg() {
 
 	Payload* pldptr = &pld;
 
-	trace2(params.handle, ray_origin, ray_direction, pldptr, 0, 1,
+	trace(params.handle, ray_origin, ray_direction, pldptr, 0, 1,
 		0);
 }
 
@@ -174,7 +174,7 @@ extern "C" __global__ void __miss__ms() {
 
 	int ray_id = pldptr->ray_id;
 
-	float c0 = 299792458.0;
+	float c0 = 299792458.0f;
 	float freq = params.freq;
 
 	float angFreq = 2 * M_PIf * freq;
@@ -264,9 +264,6 @@ extern "C" __global__ void __closesthit__triangle() {
 	float3 hit_point = ray_ori + ray_tmax * ray_dir;
 	float3 reflect_dir = reflect(ray_dir, out_normal);
 
-	float tmin = 1e-5f;
-	float tmax = 1e30f;
-
 	{
 		float3 pol = pldptr->polarization;
 
@@ -292,7 +289,7 @@ extern "C" __global__ void __closesthit__triangle() {
 		pldptr->refCount += 1;
 	}
 
-	trace2(params.handle, hit_point, reflect_dir, pldptr, 0, 1, 0);
+	trace(params.handle, hit_point, reflect_dir, pldptr, 0, 1, 0);
 }
 
 extern "C" __global__ void __closesthit__sphere() {

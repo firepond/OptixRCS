@@ -404,10 +404,14 @@ OptixAabb ReadObjMesh(const string& obj_filename,
 }
 
 
-double CalculateRcs(vector<float3>& vertices, vector<uint3>& mesh_indices, float3& observer_pos, int& rays_dimension, float3& center, double& freq) {
-
+double CalculateRcs(vector<float3>& vertices, vector<uint3>& mesh_indices, float3& observer_pos, int& rays_per_lamada, float3& center, double& freq) {
+	bool is_debug = false;
+	double c = 299792458.0;
 	int num_sphere = 1;
-
+	double lamada = c / freq;
+	int lamda_nums = observer_pos.x / lamada;
+	int rays_dimension = lamda_nums * rays_per_lamada;
+	cout << "using " << rays_dimension << " rays perdimension" << endl;
 
 	char log[2048];  // For error reporting from OptiX creation functions
 
@@ -425,7 +429,12 @@ double CalculateRcs(vector<float3>& vertices, vector<uint3>& mesh_indices, float
 		// Specify context options
 		OptixDeviceContextOptions options = {};
 		options.logCallbackFunction = &ContextLog;
-		options.logCallbackLevel = 4;
+		if (is_debug) {
+			options.logCallbackLevel = 4;
+		}
+		else {
+			options.logCallbackLevel = 0;
+		}
 
 		// Associate a CUDA context (and therefore a specific GPU) with this
 		// device context
