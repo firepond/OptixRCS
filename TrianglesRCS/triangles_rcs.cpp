@@ -38,29 +38,34 @@ using std::string;
 using std::to_string;
 
 int main(int argc, char* argv[]) {
-
-	double phi = 45;
-	double theta = 60;
-	double freq = 3E9;
 	string test_model = "corner_reflector";
-
-	if (argc > 1) {
-		phi = std::atof(argv[1]);
-		theta = std::atof(argv[2]);
-		freq = std::atof(argv[3]);
-		test_model = string(argv[4]);
-	}
 
 	string rootPathPrefix = "C:/development/optix/OptixRCS";
 	string obj_file = rootPathPrefix + "/resources/" + test_model + ".obj";
 	string csv_file = rootPathPrefix + "/output/" + test_model + "_rcs.csv";
 
-	double c = 299792458.0;
-	double lambda = c / freq;
-	int rays_per_lamada = 100;
-	int rays_per_dimension = 3000;
 	std::ofstream out_stream;
 	out_stream.open(csv_file, std::ios::app);
+
+	double c = 299792458.0;
+	int rays_per_dimension = 3000;
+
+	// start and end included
+	double phi_start = 0;
+	double phi_end = 90;
+	int phi_count = 91;
+	double phi_interval = (phi_end - phi_start) / (phi_count - 1);
+
+	double theta_start = 60;
+	double theta_end = 60;
+	int theta_count = 1;
+	double theta_interval = (theta_end - theta_start) / (theta_count - 1);
+
+
+	double freq_start = 3E9;
+	double freq_end = 3E9;
+	int freq_count = 1;
+	double freq_interval = 0;
 
 	OptixAabb aabb;
 	vector<float3> vertices;
@@ -73,27 +78,52 @@ int main(int argc, char* argv[]) {
 	float3 max_mesh = make_float3(aabb.maxX, aabb.maxY, aabb.maxZ);
 
 	float3 center = (min_mesh + max_mesh) / 2;
-
 	double radius = length(min_mesh - max_mesh) / 2.0f;
 
-	double theta_radian = theta * M_PIf / 180.0f;  // radian of elevation
+	/*
+	if (argc > 1) {
+		phi = std::atof(argv[1]);
+		theta = std::atof(argv[2]);
+		freq = std::atof(argv[3]);
+		test_model = string(argv[4]);
+	}
+	*/
 
-	double phi_radian = phi * M_PIf / 180.0f;  // radian of phi
-	
-	float3 observer_pos = make_float3(radius, phi_radian, theta_radian);
+	//double lambda = c / freq;
+	//int rays_per_lamada = 100;
 
-	double rcs_ori = CalculateRcs(vertices, mesh_indices, observer_pos, rays_per_dimension, center, freq);
 
-	double rcs = 10 * log10(rcs_ori);
+	// [0, (phi_count-1)]
+	for (int phi_i = 0; phi_i < phi_count; phi_i++) {
+		double cur_phi = phi_start + phi_interval * phi_i;
+		for (int theta_i = 0; theta_i < theta_count; theta_i++) {
+			double cur_theta = theta_start + theta_interval * theta_i;
+			for (int freq_i = 0; freq_i < freq_count; freq_i++) {
+				double cur_freq = freq_start + freq_interval * freq_i;
+				double theta_radian = cur_theta * M_PIf / 180.0f;  // radian of elevation
+				double phi_radian = cur_phi * M_PIf / 180.0f;  // radian of phi
 
-	// phi and rcs
-	cout << test_model << ": ";
-	cout << "freq = " << freq << ", ";
-	cout << "phi = " << phi << ", ";
-	cout << "theta = " << theta << ", ";
-	cout << "rcs_dbsm = " << rcs << ", ";
-	cout << "rcs_sm = " << rcs_ori << endl;
-	out_stream << freq << ", " << phi << ", " << theta << ", " << rcs << ", " << endl;
+				float3 observer_pos = make_float3(radius, phi_radian, theta_radian);
+
+				//double rcs_ori = CalculateRcs(vertices, mesh_indices, observer_pos, rays_per_dimension, center, cur_freq);
+				double rcs_ori = 100.0f;
+
+				double rcs = 10 * log10(rcs_ori);
+
+				// output format: freq, phi, theta, rcs
+				cout << test_model << ": ";
+				cout << "freq = " << cur_freq << ", ";
+				cout << "phi = " << cur_phi << ", ";
+				cout << "theta = " << cur_theta << ", ";
+				cout << "rcs_dbsm = " << rcs << ", ";
+				cout << "rcs_sm = " << rcs_ori << endl;
+				out_stream << cur_freq << ", " << cur_phi << ", " << cur_theta << ", " << rcs << ", " << endl;
+			}
+		}
+	}
+
+
+
 
 	out_stream.close();
 
