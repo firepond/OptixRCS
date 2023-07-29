@@ -9,5 +9,5 @@
 void reduce(CUdeviceptr ptr) {
 	//Params params = (Params)ptr;
 	//Result* result = params->result;
-	printf("ray per %d: \n", ptr);
+	//printf("ray per %d: \n", ptr);
 }
