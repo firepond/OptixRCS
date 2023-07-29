@@ -38,6 +38,8 @@ using std::string;
 using std::to_string;
 
 int main(int argc, char* argv[]) {
+	auto sum_start = high_resolution_clock::now();
+
 	string test_model = "corner_reflector";
 
 	string rootPathPrefix = "C:/development/optix/OptixRCS";
@@ -100,6 +102,7 @@ int main(int argc, char* argv[]) {
 			double cur_theta = theta_start + theta_interval * theta_i;
 			for (int freq_i = 0; freq_i < freq_count; freq_i++) {
 				double cur_freq = freq_start + freq_interval * freq_i;
+
 				double theta_radian = cur_theta * M_PIf / 180.0f;  // radian of elevation
 				double phi_radian = cur_phi * M_PIf / 180.0f;  // radian of phi
 
@@ -123,7 +126,9 @@ int main(int argc, char* argv[]) {
 	}
 
 
-
+	auto sum_end = high_resolution_clock::now();
+	auto ms_int = duration_cast<milliseconds>(sum_end - sum_start);
+	std::cout << "rcs sum time usage for " << phi_count * theta_count * freq_count << " points : " << ms_int.count() << "ms\n";
 
 	out_stream.close();
 
