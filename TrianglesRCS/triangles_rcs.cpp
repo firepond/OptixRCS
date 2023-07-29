@@ -40,22 +40,23 @@ using std::to_string;
 int main(int argc, char* argv[]) {
 	auto sum_start = high_resolution_clock::now();
 
-	string test_model = "corner_reflector";
+	//string test_model = "corner_reflector";
+	string test_model = "d_reflector";
 
 	string rootPathPrefix = "C:/development/optix/OptixRCS";
 
 	double c = 299792458.0;
 	int rays_per_dimension = 3000;
 	// 3Ghz
-	double freq = 3E9;
+	double freq = 15E9;
 
 	// start and end included
-	double phi_start = 0;
-	double phi_end = 90;
+	double phi_start = 45;
+	double phi_end = 45;
 	double phi_interval = 1;
 
-	double theta_start = 60;
-	double theta_end = 60;
+	double theta_start = 90;
+	double theta_end = 90;
 	double theta_interval = 1;
 
 	if (argc > 1) {
@@ -113,7 +114,7 @@ int main(int argc, char* argv[]) {
 	int phi_count = (int)(phi_end - phi_start) / phi_interval + 1;
 	int theta_count = (int)(theta_end - theta_start) / theta_interval + 1;
 
-	int rays_per_lamada = 100;
+	int rays_per_lamada = 10;
 	cout << "Phi: [" << phi_start << ":" << phi_end << ":" << phi_count << "]" << endl;
 	cout << "Theta: [" << theta_start << ":" << theta_end << ":" << theta_count << "]" << endl;
 
