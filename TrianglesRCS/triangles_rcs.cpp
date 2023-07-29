@@ -105,8 +105,8 @@ int main(int argc, char* argv[]) {
 
 				float3 observer_pos = make_float3(radius, phi_radian, theta_radian);
 
-				//double rcs_ori = CalculateRcs(vertices, mesh_indices, observer_pos, rays_per_dimension, center, cur_freq);
-				double rcs_ori = 100.0f;
+				double rcs_ori = CalculateRcs(vertices, mesh_indices, observer_pos, rays_per_dimension, center, cur_freq);
+				//double rcs_ori = 100.0f;
 
 				double rcs = 10 * log10(rcs_ori);
 
