@@ -2,3 +2,4 @@
 /resources
 /output
 *.ipynb
+*.csv
