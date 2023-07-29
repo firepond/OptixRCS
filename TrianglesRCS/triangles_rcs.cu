@@ -151,7 +151,8 @@ extern "C" __global__ void __raygen__rg() {
 
 	Payload pld;
 
-	pld.polarization = make_float3(-0.5f, 0.5f, 0.0f);
+	float phi = params.observer_pos.y;
+	pld.polarization = make_float3(-sinf(phi), cosf(phi), 0.0f);
 
 	pld.tpath = 0.0f;
 	pld.ray_id = idx.x + dim.x * idx.y;
@@ -212,9 +213,9 @@ extern "C" __global__ void __miss__ms() {
 		float kr = waveNum * pldptr->tpath;
 
 		float reflectionCoef = powf(1.0f, pldptr->refCount);
-
-		complexFloat3 apE = exp(i * kr) * pldptr->polarization;
 		float3 pol = pldptr->polarization;
+
+		complexFloat3 apE = exp(i * kr) * pol;
 
 		complexFloat3 apH = -cross(apE, ray_direction);
 
@@ -229,10 +230,15 @@ extern "C" __global__ void __miss__ms() {
 		complex<float> e = exp(-i * dot(vecK, ray_ori));
 
 		complex<float> factor = complex<float>(0.0, t) * e;
+	
 
 		AU = BU * factor;
 
 		AR = BR * factor;
+		/*if (pldptr->ray_id % 10000==0) {
+			printf("factor: %f %f\n", factor.real(), factor.imag());
+			printf("waveNum: %f\n", waveNum);
+		}*/
 	}
 
 	params.result[ray_id].au_real = AU.real();

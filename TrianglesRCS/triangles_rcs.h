@@ -409,8 +409,8 @@ double CalculateRcs(vector<float3>& vertices, vector<uint3>& mesh_indices, float
 	double c = 299792458.0;
 	int num_sphere = 1;
 	double lamada = c / freq;
-	int lamda_nums = observer_pos.x / lamada;
-	int rays_dimension = lamda_nums * rays_per_lamada;
+	double lamda_nums = observer_pos.x * 2 / lamada;
+	int rays_dimension = ceil(lamda_nums * rays_per_lamada + 1) + 1;
 	cout << "using " << rays_dimension << " rays perdimension" << endl;
 
 	char log[2048];  // For error reporting from OptiX creation functions
