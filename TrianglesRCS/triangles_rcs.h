@@ -744,6 +744,7 @@ double CalculateRcs(vector<float3> vertices, vector<uint3> mesh_indices, float3 
 	params.handle = ias.handle;
 	params.observer_pos = observer_pos;
 	params.box_center = center;
+	params.freq = freq;
 
 	CUdeviceptr d_param;
 
