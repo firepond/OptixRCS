@@ -1,9 +1,16 @@
 OPTIX_add_sample_executable( TrianglesRCS target_name
-  triangles_rcs.cpp
-  triangles_rcs.cu
+
+  rcs_params.h
   triangles_rcs.h
-  complex_vector.cu
+  triangles_rcs.cpp
+
   tiny_obj_loader.h
+
+  triangles_rcs.cu
+  complex_vector.cu
+
+  reduce.cu
+
   OPTIONS -rdc true
   )
 

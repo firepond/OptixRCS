@@ -7,7 +7,7 @@
 
 #include "complex_vector.cu"
 #include "sphere.h"
-#include "triangles_rcs.h"
+#include "rcs_params.h"
 
 extern "C" {
 	__constant__ Params params;

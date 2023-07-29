@@ -5,9 +5,12 @@
 #include <vector_types.h>
 
 #include <cuda/std/complex>
+#include <cuda/std/cmath>
+
+#ifndef RCS_COMPLEX_VECTOR_
+#define RCS_COMPLEX_VECTOR_
 
 using cuda::std::complex;
-
 
 struct complexFloat3 {
     complex<float> x, y, z;
@@ -87,3 +90,5 @@ __device__ float3 CtsToSph(float3 f3) {
 
     return make_float3(r, phi, theta);
 }
+
+#endif
