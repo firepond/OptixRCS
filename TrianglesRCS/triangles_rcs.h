@@ -404,7 +404,7 @@ OptixAabb ReadObjMesh(const string& obj_filename,
 }
 
 
-double CalculateRcs(vector<float3> vertices, vector<uint3> mesh_indices, float3 observer_pos, int rays_dimension, float3 center, float freq) {
+double CalculateRcs(vector<float3>& vertices, vector<uint3>& mesh_indices, float3& observer_pos, int& rays_dimension, float3& center, double& freq) {
 
 	int num_sphere = 1;
 
