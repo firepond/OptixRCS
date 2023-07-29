@@ -78,7 +78,7 @@ static __forceinline__ __device__ float3 sphericalToCartesian(float3 point) {
 static __forceinline__ __device__ void computeRay(uint3 idx, uint3 dim,
 	float3& origin,
 	float3& direction) {
-	float3 outDirSph = params.cam_eye;
+	float3 outDirSph = params.observer_pos;
 	float3 dirN = make_float3(0);  // ray direction
 	float3 dirU = make_float3(0);
 	float3 dirR = make_float3(0);
@@ -169,7 +169,6 @@ extern "C" __global__ void __miss__ms() {
 	unsigned int p0, p1;
 	Payload* pldptr = getPayload2();
 	packPointer(pldptr, p0, p1);
-	// printf("miss ray: %d\n", pldptr->ray_id);
 	float3 ray_direction = optixGetWorldRayDirection();
 	float3 ray_ori = optixGetWorldRayOrigin();
 
@@ -182,13 +181,13 @@ extern "C" __global__ void __miss__ms() {
 	float waveLen = c0 / freq;
 	float waveNum = 2 * M_PIf / waveLen;
 
-	float rayRadius = params.cam_eye.x / params.rays_per_dimension;
+	float rayRadius = params.observer_pos.x / params.rays_per_dimension;
 	float rayDiameter = rayRadius * 2;
 
 	float rayArea = rayDiameter * rayDiameter;
 
-	float phi = params.cam_eye.y;
-	float the = params.cam_eye.z;
+	float phi = params.observer_pos.y;
+	float the = params.observer_pos.z;
 
 	float cp = cosf(phi);
 	float sp = sinf(phi);

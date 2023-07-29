@@ -38,11 +38,13 @@ using std::string;
 using std::to_string;
 
 int main(int argc, char* argv[]) {
-	string testfile = "corner_reflector";
-	// string testfile = "d_reflector";
-	// string testfile = "pone_0253743_model_cuboid_and_semishpere";
-	string obj_file =
-		"C:/development/optix/OptixRCS/resources/" + testfile + ".obj";
+
+	string rootPathPrefix = "C:/development/optix/OptixRCS";
+	//string test_model = "corner_reflector";
+	 string test_model = "d_reflector";
+	// string test_model = "pone_0253743_model_cuboid_and_semishpere";
+	string obj_file = rootPathPrefix + "/resources/" + test_model + ".obj";
+	string csv_file = rootPathPrefix + "/output/rcs.csv";
 
 	float phi = 45;
 	float theta = 60;
@@ -53,45 +55,43 @@ int main(int argc, char* argv[]) {
 		rays_per_dimension = std::stoi(argv[3]);
 	}
 
-	std::ofstream outtext;
-	outtext.open("C:/development/optix/OptixRCS/output/rcs.csv", std::ios::app);
+
+	std::ofstream out_stream;
+	out_stream.open(csv_file, std::ios::app);
 
 	OptixAabb aabb;
-	std::vector<float3> vertices;
-	std::vector<uint3> mesh_indices;
+	vector<float3> vertices;
+	vector<uint3> mesh_indices;
 
-	aabb = read_obj_mesh(obj_file, vertices, mesh_indices);
+	aabb = ReadObjMesh(obj_file, vertices, mesh_indices);
 
-	float3 minMesh =
-		make_float3(aabb.minX * 1.5, aabb.minY * 1.5, aabb.minZ * 1.5);
+	float3 min_mesh =
+		make_float3(aabb.minX, aabb.minY, aabb.minZ);
+	float3 max_mesh = make_float3(aabb.maxX, aabb.maxY, aabb.maxZ);
 
-	float3 maxMesh = make_float3(aabb.maxX, aabb.maxY, aabb.maxZ);
-	float3 center = (minMesh + maxMesh) / 2;
-	float3 zero_point = make_float3(0.0, 0.0, 0.0);
-	float distance =
-		sqrt(pow((minMesh.x - maxMesh.x), 2) + pow((minMesh.y - maxMesh.y), 2) +
-			pow((minMesh.z - maxMesh.z), 2));
+	float3 center = (min_mesh + max_mesh) / 2;
+	float3 zero_point = make_float3(0.0f);
+
+	float distance = length(min_mesh - max_mesh);
 
 	float radius = distance / 2.0f;
 
+	float theta_radian = theta * M_PIf / 180.0f;  // radian of elevation
 
-	float thetaRadian = theta * M_PIf / 180.0f;  // radian of elevation
-
-	int num_sphere = 1;  // 101
-
-	float phiRadian = phi * M_PIf / 180.0f;  // radian of phi
-
-	float3 cam_pos = make_float3(radius, phiRadian, thetaRadian);
-	double rcs_ori = calculateRcs(vertices, mesh_indices, cam_pos, rays_per_dimension, center);
+	float phi_radian = phi * M_PIf / 180.0f;  // radian of phi
+	float freq = 3E9;
+	float3 observer_pos = make_float3(radius, phi_radian, theta_radian);
+	double rcs_ori = CalculateRcs(vertices, mesh_indices, observer_pos, rays_per_dimension, center, freq);
 	double rcs = 10 * log10(rcs_ori);
 	// phi and rcs
-	cout << "rcs: " << rcs << endl;
-	cout << "rcs ori : " << rcs_ori << endl;
+	cout << test_model << ": ";
+	cout << "phi = " << phi << ", ";
+	cout << "theta = " << theta << ", ";
+	cout << "rcs_dbsm = " << rcs << ", ";
+	cout << "rcs_sm = " << rcs_ori << endl;
+	out_stream << phi << ", " << theta << ", " << rays_per_dimension << ", " << rcs << ", " << endl;
 
-	cout << phi << ", " << theta << ", " << rays_per_dimension << ", " << rcs << endl;
-	outtext << phi << ", " << theta << ", " << rays_per_dimension << ", " << rcs << ", " << endl;
-
-	outtext.close();
+	out_stream.close();
 
 	return 0;
 }

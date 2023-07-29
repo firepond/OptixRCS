@@ -49,7 +49,7 @@ typedef SbtRecord<MissData> MissSbtRecord;
 typedef SbtRecord<HitGroupData> HitGroupSbtRecord;
 
 
-static void context_log_cb(unsigned int level, const char* tag,
+static void ContextLog(unsigned int level, const char* tag,
 	const char* message, void* /*cbdata */) {
 	std::cerr << "[" << std::setw(2) << level << "][" << std::setw(12) << tag
 		<< "]: " << message << "\n";
@@ -69,7 +69,7 @@ struct InstanceAccelData {
 	CUdeviceptr d_instances_buffer;
 };
 
-void buildGAS(OptixDeviceContext context, GeometryAccelData& gas,
+void BuildGAS(OptixDeviceContext context, GeometryAccelData& gas,
 	OptixBuildInput& build_input) {
 	OptixAccelBuildOptions accel_options = {};
 	accel_options.buildFlags = OPTIX_BUILD_FLAG_ALLOW_COMPACTION;
@@ -129,7 +129,7 @@ void buildGAS(OptixDeviceContext context, GeometryAccelData& gas,
 	}
 }
 
-OptixAabb sphereBound(const SphereData& sphere) {
+OptixAabb GetSphereBound(const SphereData& sphere) {
 	const float3 center = sphere.center;
 	const float radius = sphere.radius;
 	return OptixAabb{/* minX = */ center.x - radius,
@@ -140,7 +140,7 @@ OptixAabb sphereBound(const SphereData& sphere) {
 		/* maxZ = */ center.z + radius };
 }
 
-uint32_t getNumSbtRecords(const std::vector<uint32_t>& sbt_indices) {
+uint32_t GetNumSbtRecords(const std::vector<uint32_t>& sbt_indices) {
 	std::vector<uint32_t> sbt_counter;
 	for (const uint32_t& sbt_idx : sbt_indices) {
 		auto itr = std::find(sbt_counter.begin(), sbt_counter.end(), sbt_idx);
@@ -150,13 +150,13 @@ uint32_t getNumSbtRecords(const std::vector<uint32_t>& sbt_indices) {
 	return static_cast<uint32_t>(sbt_counter.size());
 }
 
-void* buildSphereGAS(OptixDeviceContext context, GeometryAccelData& gas,
+void* BuildSphereGAS(OptixDeviceContext context, GeometryAccelData& gas,
 	const std::vector<SphereData>& spheres,
 	const std::vector<uint32_t>& sbt_indices) {
 	std::vector<OptixAabb> aabb;
 	std::transform(
 		spheres.begin(), spheres.end(), std::back_inserter(aabb),
-		[](const SphereData& sphere) { return sphereBound(sphere); });
+		[](const SphereData& sphere) { return GetSphereBound(sphere); });
 
 	CUdeviceptr d_aabb_buffer;
 	const size_t aabb_size = sizeof(OptixAabb) * aabb.size();
@@ -177,7 +177,7 @@ void* buildSphereGAS(OptixDeviceContext context, GeometryAccelData& gas,
 		sizeof(SphereData) * spheres.size(),
 		cudaMemcpyHostToDevice));
 
-	uint32_t num_sbt_records = getNumSbtRecords(sbt_indices);
+	uint32_t num_sbt_records = GetNumSbtRecords(sbt_indices);
 	gas.num_sbt_records = num_sbt_records;
 
 	uint32_t* input_flags = new uint32_t[num_sbt_records];
@@ -197,12 +197,12 @@ void* buildSphereGAS(OptixDeviceContext context, GeometryAccelData& gas,
 	sphere_input.customPrimitiveArray.sbtIndexOffsetStrideInBytes =
 		sizeof(uint32_t);
 
-	buildGAS(context, gas, sphere_input);
+	BuildGAS(context, gas, sphere_input);
 
 	return d_sphere;
 }
 
-void* buildTriangleGAS(OptixDeviceContext context, GeometryAccelData& gas,
+void* BuildTriangleGAS(OptixDeviceContext context, GeometryAccelData& gas,
 	const std::vector<float3>& vertices,
 	std::vector<uint3>& triangles,
 	const std::vector<uint32_t>& sbt_indices) {
@@ -233,7 +233,7 @@ void* buildTriangleGAS(OptixDeviceContext context, GeometryAccelData& gas,
 	CUDA_CHECK(cudaMemcpy(d_mesh_data, &mesh_data, sizeof(MeshData),
 		cudaMemcpyHostToDevice));
 
-	uint32_t num_sbt_records = getNumSbtRecords(sbt_indices);
+	uint32_t num_sbt_records = GetNumSbtRecords(sbt_indices);
 	gas.num_sbt_records = num_sbt_records;
 
 	uint32_t* input_flags = new uint32_t[num_sbt_records];
@@ -258,12 +258,12 @@ void* buildTriangleGAS(OptixDeviceContext context, GeometryAccelData& gas,
 	mesh_input.triangleArray.sbtIndexOffsetSizeInBytes = sizeof(uint32_t);
 	mesh_input.triangleArray.sbtIndexOffsetStrideInBytes = sizeof(uint32_t);
 
-	buildGAS(context, gas, mesh_input);
+	BuildGAS(context, gas, mesh_input);
 
 	return d_mesh_data;
 }
 
-void buildIAS(OptixDeviceContext context, InstanceAccelData& ias,
+void BuildIAS(OptixDeviceContext context, InstanceAccelData& ias,
 	const std::vector<OptixInstance>& instances) {
 	CUdeviceptr d_instances;
 	const size_t instances_size = sizeof(OptixInstance) * instances.size();
@@ -343,7 +343,7 @@ void buildIAS(OptixDeviceContext context, InstanceAccelData& ias,
 	// ias.d_output_buffer = d_buffer_temp_output_ias_and_compacted_size;
 }
 
-OptixAabb read_obj_mesh(const std::string& obj_filename,
+OptixAabb ReadObjMesh(const std::string& obj_filename,
 	std::vector<float3>& vertices,
 	std::vector<uint3>& triangles) {
 	tinyobj::attrib_t attrib;
@@ -363,14 +363,14 @@ OptixAabb read_obj_mesh(const std::string& obj_filename,
 		return aabb;
 	}
 
-	for (size_t s = 0; s < shapes.size(); s++) {
-		size_t index_offset = 0;
-		for (size_t f = 0; f < shapes[s].mesh.num_face_vertices.size(); f++) {
+	for (unsigned int s = 0; s < shapes.size(); s++) {
+		unsigned int index_offset = 0;
+		for (unsigned int f = 0; f < shapes[s].mesh.num_face_vertices.size(); f++) {
 			int fv = shapes[s].mesh.num_face_vertices[f];
 
 			auto vertexOffset = vertices.size();
 
-			for (size_t v = 0; v < fv; v++) {
+			for (unsigned int v = 0; v < fv; v++) {
 				// access to vertex
 				tinyobj::index_t idx = shapes[s].mesh.indices[index_offset + v];
 
@@ -405,14 +405,11 @@ OptixAabb read_obj_mesh(const std::string& obj_filename,
 
 enum class ShapeType { Mesh, Sphere };
 
-double calculateRcs(vector<float3> vertices, vector<uint3> mesh_indices, float3 cam_pos, int rays_per_dimension, float3 center) {
-	//float thetaRadian = theta * M_PIf / 180.0;  // radian of elevation
+double CalculateRcs(vector<float3> vertices, vector<uint3> mesh_indices, float3 observer_pos, int rays_dimension, float3 center, float freq) {
 
 	int num_sphere = 1;  // 101
 
-	//float phiRadian = phi * M_PIf / 180.0;  // radian of phi
 
-	//float3 cam_pos = make_float3(radius, phiRadian, thetaRadian);
 	char log[2048];  // For error reporting from OptiX creation functions
 
 	//
@@ -428,13 +425,13 @@ double calculateRcs(vector<float3> vertices, vector<uint3> mesh_indices, float3 
 
 		// Specify context options
 		OptixDeviceContextOptions options = {};
-		options.logCallbackFunction = &context_log_cb;
+		options.logCallbackFunction = &ContextLog;
 		options.logCallbackLevel = 4;
 
 		// Associate a CUDA context (and therefore a specific GPU) with this
 		// device context
-		CUcontext cuCtx = 0;  // zero means take the current context
-		OPTIX_CHECK(optixDeviceContextCreate(cuCtx, &options, &context));
+		CUcontext cu_context = 0;  // zero means take the current context
+		OPTIX_CHECK(optixDeviceContextCreate(cu_context, &options, &context));
 	}
 
 	//
@@ -464,7 +461,7 @@ double calculateRcs(vector<float3> vertices, vector<uint3> mesh_indices, float3 
 		// build mesh GAS
 		GeometryAccelData mesh_gas;
 		void* d_mesh_data;
-		d_mesh_data = buildTriangleGAS(context, mesh_gas, vertices,
+		d_mesh_data = BuildTriangleGAS(context, mesh_gas, vertices,
 			mesh_indices, mesh_sbt_indices);
 
 		// HitGroupData
@@ -474,7 +471,7 @@ double calculateRcs(vector<float3> vertices, vector<uint3> mesh_indices, float3 
 		// Custom build input for sphere: simple list of sphere data
 		std::vector<SphereData> spheres;
 		for (int i = 0; i < num_sphere; i++) {
-			const float3 center = cam_pos;
+			const float3 center = observer_pos;
 			// define radious of recieve sphere
 			spheres.emplace_back(SphereData{ center, 0.0f });
 		}
@@ -487,7 +484,7 @@ double calculateRcs(vector<float3> vertices, vector<uint3> mesh_indices, float3 
 
 		GeometryAccelData sphere_gas;
 		void* d_sphere_data;
-		d_sphere_data = buildSphereGAS(context, sphere_gas, spheres,
+		d_sphere_data = BuildSphereGAS(context, sphere_gas, spheres,
 			sphere_sbt_indices);
 
 		hitgroup_datas.emplace_back(ShapeType::Sphere,
@@ -518,7 +515,7 @@ double calculateRcs(vector<float3> vertices, vector<uint3> mesh_indices, float3 
 						  sphere_gas.handle,
 						  {0, 0} });
 
-		buildIAS(context, ias, instances);
+		BuildIAS(context, ias, instances);
 	}
 
 	//
@@ -734,7 +731,7 @@ double calculateRcs(vector<float3> vertices, vector<uint3> mesh_indices, float3 
 	}
 
 	sutil::CUDAOutputBuffer<Result> result(
-		sutil::CUDAOutputBufferType::CUDA_DEVICE, rays_per_dimension, rays_per_dimension);
+		sutil::CUDAOutputBufferType::CUDA_DEVICE, rays_dimension, rays_dimension);
 	//
 	// launch
 	//
@@ -743,9 +740,9 @@ double calculateRcs(vector<float3> vertices, vector<uint3> mesh_indices, float3 
 	result.setStream(stream);
 	Params params;
 	params.result = result.map();
-	params.rays_per_dimension = rays_per_dimension;
+	params.rays_per_dimension = rays_dimension;
 	params.handle = ias.handle;
-	params.cam_eye = cam_pos;
+	params.observer_pos = observer_pos;
 	params.box_center = center;
 
 	CUdeviceptr d_param;
@@ -760,10 +757,8 @@ double calculateRcs(vector<float3> vertices, vector<uint3> mesh_indices, float3 
 
 
 	OPTIX_CHECK(optixLaunch(pipeline, stream, d_param, sizeof(Params), &sbt,
-		rays_per_dimension, rays_per_dimension, /*depth=*/1));
+		rays_dimension, rays_dimension, /*depth=*/1));
 	CUDA_SYNC_CHECK();
-
-	//reduce(d_param);
 
 	auto optix_end = high_resolution_clock::now();
 	auto ms_int = duration_cast<milliseconds>(optix_end - optix_start);
@@ -777,7 +772,7 @@ double calculateRcs(vector<float3> vertices, vector<uint3> mesh_indices, float3 
 	complex<double> au = 0;
 	complex<double> ar = 0;
 	int hit_count = 0;
-	for (int i = 0; i < rays_per_dimension * rays_per_dimension; i++) {
+	for (int i = 0; i < rays_dimension * rays_dimension; i++) {
 		Result cur_result = resultBuffer[i];
 		if (cur_result.refCount > 0) {
 			hit_count++;

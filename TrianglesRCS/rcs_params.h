@@ -16,8 +16,9 @@ struct Params {
     Result* result;
     unsigned int rays_per_dimension;
     // r, phi, theta
-    float3 cam_eye;
+    float3 observer_pos;
     float3 box_center;
+    float freq;
 
     OptixTraversableHandle handle;
 };
