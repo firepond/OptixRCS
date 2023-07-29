@@ -39,27 +39,26 @@ using std::to_string;
 
 int main(int argc, char* argv[]) {
 
-	string rootPathPrefix = "C:/development/optix/OptixRCS";
-	string test_model = "corner_reflector";
-	 //string test_model = "d_reflector";
-	// string test_model = "pone_0253743_model_cuboid_and_semishpere";
-	string obj_file = rootPathPrefix + "/resources/" + test_model + ".obj";
-	string csv_file = rootPathPrefix + "/output/" + test_model + "_rcs.csv";
-
 	double phi = 45;
 	double theta = 60;
-	double frequency = 3E9;
+	double freq = 3E9;
+	string test_model = "corner_reflector";
+
 	if (argc > 1) {
 		phi = std::atof(argv[1]);
 		theta = std::atof(argv[2]);
-		frequency = std::atof(argv[3]);
+		freq = std::atof(argv[3]);
+		test_model = string(argv[4]);
 	}
 
-	//cout << "freq: " << frequency;
+	string rootPathPrefix = "C:/development/optix/OptixRCS";
+	string obj_file = rootPathPrefix + "/resources/" + test_model + ".obj";
+	string csv_file = rootPathPrefix + "/output/" + test_model + "_rcs.csv";
+
 	double c = 299792458.0;
-	double lambda = c / frequency;
+	double lambda = c / freq;
 	int rays_per_lamada = 100;
-	int rays_per_dimension = lambda * rays_per_lamada;
+	int rays_per_dimension = 3000;
 	std::ofstream out_stream;
 	out_stream.open(csv_file, std::ios::app);
 
@@ -74,19 +73,19 @@ int main(int argc, char* argv[]) {
 	float3 max_mesh = make_float3(aabb.maxX, aabb.maxY, aabb.maxZ);
 
 	float3 center = (min_mesh + max_mesh) / 2;
-	float3 zero_point = make_float3(0.0f);
 
-	double distance = length(min_mesh - max_mesh);
-
-	double radius = distance / 2.0f;
+	double radius = length(min_mesh - max_mesh) / 2.0f;
 
 	double theta_radian = theta * M_PIf / 180.0f;  // radian of elevation
 
 	double phi_radian = phi * M_PIf / 180.0f;  // radian of phi
-	double freq = 3E9;
+	
 	float3 observer_pos = make_float3(radius, phi_radian, theta_radian);
+
 	double rcs_ori = CalculateRcs(vertices, mesh_indices, observer_pos, rays_per_dimension, center, freq);
+
 	double rcs = 10 * log10(rcs_ori);
+
 	// phi and rcs
 	cout << test_model << ": ";
 	cout << "freq = " << freq << ", ";
