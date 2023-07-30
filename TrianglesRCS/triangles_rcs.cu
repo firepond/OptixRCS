@@ -56,7 +56,7 @@ static __forceinline__ __device__ void trace(
 		p0, p1);
 }
 
-static __forceinline__ __device__ Payload* getPayload2() {
+static __forceinline__ __device__ Payload* getPayload() {
 	unsigned int p0, p1;
 	p0 = optixGetPayload_0();
 	p1 = optixGetPayload_1();
@@ -152,7 +152,12 @@ extern "C" __global__ void __raygen__rg() {
 	Payload pld;
 
 	float phi = params.observer_pos.y;
-	pld.polarization = make_float3(-sinf(phi), cosf(phi), 0.0f);
+	float theta = params.observer_pos.z;
+
+	// H wave, [x,y,0]*ray_direction == 0
+	 //pld.polarization = make_float3(-sinf(phi), cosf(phi), 0.0f);
+	 // V wave
+	pld.polarization = make_float3(cosf(phi) * cosf(theta), sinf(phi) * cosf(theta), -sinf(theta));
 
 	pld.tpath = 0.0f;
 	pld.ray_id = idx.x + dim.x * idx.y;
@@ -168,7 +173,7 @@ extern "C" __global__ void __raygen__rg() {
 
 extern "C" __global__ void __miss__ms() {
 	unsigned int p0, p1;
-	Payload* pldptr = getPayload2();
+	Payload* pldptr = getPayload();
 	packPointer(pldptr, p0, p1);
 	float3 ray_direction = optixGetWorldRayDirection();
 	float3 ray_ori = optixGetWorldRayOrigin();
@@ -215,7 +220,7 @@ extern "C" __global__ void __miss__ms() {
 		float reflectionCoef = powf(1.0f, pldptr->refCount);
 		float3 pol = pldptr->polarization;
 
-		complexFloat3 apE = exp(i * kr) * pol;
+		complexFloat3 apE = exp(i * kr) * pol * reflectionCoef;
 
 		complexFloat3 apH = -cross(apE, ray_direction);
 
@@ -230,7 +235,7 @@ extern "C" __global__ void __miss__ms() {
 		complex<float> e = exp(-i * dot(vecK, ray_ori));
 
 		complex<float> factor = complex<float>(0.0, t) * e;
-	
+
 
 		AU = BU * factor;
 
@@ -256,7 +261,7 @@ extern "C" __global__ void __closesthit__triangle() {
 
 	float ray_tmax = optixGetRayTmax();
 
-	Payload* pldptr = getPayload2();
+	Payload* pldptr = getPayload();
 
 	HitGroupData* data = (HitGroupData*)optixGetSbtDataPointer();
 	const MeshData* mesh_data = (MeshData*)data->shape_data;
@@ -299,7 +304,7 @@ extern "C" __global__ void __closesthit__triangle() {
 }
 
 extern "C" __global__ void __closesthit__sphere() {
-	Payload* pldptr = getPayload2();
+	Payload* pldptr = getPayload();
 	unsigned int sphe_id = optixGetPrimitiveIndex();
 
 	float ray_tmax = optixGetRayTmax();
@@ -320,7 +325,7 @@ extern "C" __global__ void __intersection__sphere() {
 	const float3 origin = optixGetObjectRayOrigin();
 	const float3 direction = optixGetObjectRayDirection();
 
-	Payload* pldptr = getPayload2();
+	Payload* pldptr = getPayload();
 	float ray_tmax = optixGetRayTmax();
 
 	float total_path_length = ray_tmax + pldptr->tpath;
