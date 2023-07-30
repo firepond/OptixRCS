@@ -114,7 +114,7 @@ int main(int argc, char* argv[]) {
 	int phi_count = (int)(phi_end - phi_start) / phi_interval + 1;
 	int theta_count = (int)(theta_end - theta_start) / theta_interval + 1;
 
-	int rays_per_lamada = 10;
+	int rays_per_lamada = 100;
 	cout << "Phi: [" << phi_start << ":" << phi_end << ":" << phi_count << "]" << endl;
 	cout << "Theta: [" << theta_start << ":" << theta_end << ":" << theta_count << "]" << endl;
 
