@@ -423,6 +423,9 @@ private:
 	int rays_per_lamada;
 
 	OptixDeviceContext context = nullptr;
+	OptixPipeline pipeline = nullptr;
+	OptixModule module = nullptr;
+
 	InstanceAccelData ias;
 	std::vector<std::pair<ShapeType, HitGroupData>> hitgroup_datas;
 
@@ -447,8 +450,11 @@ RcsPredictor::RcsPredictor() {
 }
 
 RcsPredictor::~RcsPredictor() {
-	OPTIX_CHECK(optixDeviceContextDestroy(context));
 	cout << "cleaning optix" << endl;
+
+	OPTIX_CHECK(optixDeviceContextDestroy(context));
+	OPTIX_CHECK(optixModuleDestroy(module));
+	//OPTIX_CHECK(optixPipelineDestroy(pipeline));
 }
 
 void RcsPredictor::init(const string& obj_filename, int rays_per_lamada,
@@ -502,53 +508,49 @@ void RcsPredictor::initOptix() {
 
 
 
-	// OptixTraversableHandle gas_handle;
-	//InstanceAccelData ias;
-	// CUdeviceptr d_gas_output_buffer;
-	//std::vector<std::pair<ShapeType, HitGroupData>> hitgroup_datas;
-	{
-		// Use default options for simplicity.  In a real use case we would
-		// want to enable compaction, etc
-		OptixAccelBuildOptions accel_options = {};
-		accel_options.buildFlags = OPTIX_BUILD_FLAG_NONE;
-		accel_options.operation = OPTIX_BUILD_OPERATION_BUILD;
 
-		// Triangle build input
+	// Use default options for simplicity.  In a real use case we would
+	// want to enable compaction, etc
+	OptixAccelBuildOptions accel_options = {};
+	accel_options.buildFlags = OPTIX_BUILD_FLAG_NONE;
+	accel_options.operation = OPTIX_BUILD_OPERATION_BUILD;
 
-		std::vector<uint32_t> mesh_sbt_indices;
+	// Triangle build input
 
-		// set sbt index (only one material available)
-		const uint32_t sbt_index = 0;
-		for (size_t i = 0; i < mesh_indices.size(); i++) {
-			mesh_sbt_indices.push_back(sbt_index);
-		}
+	std::vector<uint32_t> mesh_sbt_indices;
 
-		// build mesh GAS
-		GeometryAccelData mesh_gas;
-		void* d_mesh_data;
-		d_mesh_data = BuildTriangleGAS(context, mesh_gas, vertices,
-			mesh_indices, mesh_sbt_indices);
-
-		// HitGroupData
-		hitgroup_datas.emplace_back(ShapeType::Mesh, HitGroupData{ d_mesh_data });
-
-
-		std::vector<OptixInstance> instances;
-		uint32_t flags = OPTIX_INSTANCE_FLAG_NONE;
-
-		uint32_t sbt_offset = 0;
-		uint32_t instance_id = 0;
-		instances.emplace_back(
-			OptixInstance{ {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0},
-						  instance_id,
-						  sbt_offset,
-						  255,
-						  flags,
-						  mesh_gas.handle,
-						  {0, 0} });
-
-		BuildIAS(context, ias, instances);
+	// set sbt index (only one material available)
+	const uint32_t sbt_index = 0;
+	for (size_t i = 0; i < mesh_indices.size(); i++) {
+		mesh_sbt_indices.push_back(sbt_index);
 	}
+
+	// build mesh GAS
+	GeometryAccelData mesh_gas;
+	void* d_mesh_data;
+	d_mesh_data = BuildTriangleGAS(context, mesh_gas, vertices,
+		mesh_indices, mesh_sbt_indices);
+
+	// HitGroupData
+	hitgroup_datas.emplace_back(ShapeType::Mesh, HitGroupData{ d_mesh_data });
+
+
+	std::vector<OptixInstance> instances;
+	uint32_t flags = OPTIX_INSTANCE_FLAG_NONE;
+
+	uint32_t sbt_offset = 0;
+	uint32_t instance_id = 0;
+	instances.emplace_back(
+		OptixInstance{ {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0},
+					  instance_id,
+					  sbt_offset,
+					  255,
+					  flags,
+					  mesh_gas.handle,
+					  {0, 0} });
+
+	BuildIAS(context, ias, instances);
+
 
 
 }
@@ -558,15 +560,15 @@ double RcsPredictor::CalculateRcs(double phi, double theta) {
 	float3 observer_pos = make_float3(radius, phi, theta);
 	//CUDA_CHECK(cudaFree(0));
 
-	
+
 	// accel handling
-	
+
 
 	//
 	// Create module
 	//
-	OptixModule module = nullptr;
-	// OptixModule sphere_module = nullptr;
+	//	OptixModule module = nullptr;
+
 	OptixPipelineCompileOptions pipeline_compile_options = {};
 	{
 		OptixModuleCompileOptions module_compile_options = {};
@@ -812,11 +814,11 @@ double RcsPredictor::CalculateRcs(double phi, double theta) {
 		CUDA_CHECK(cudaFree(reinterpret_cast<void*>(sbt.missRecordBase)));
 		CUDA_CHECK(cudaFree(reinterpret_cast<void*>(sbt.hitgroupRecordBase)));
 
-		OPTIX_CHECK(optixPipelineDestroy(pipeline));
+		//OPTIX_CHECK(optixPipelineDestroy(pipeline));
 		OPTIX_CHECK(optixProgramGroupDestroy(hitgroup_prog_group_triangle));
 		OPTIX_CHECK(optixProgramGroupDestroy(miss_prog_group));
 		OPTIX_CHECK(optixProgramGroupDestroy(raygen_prog_group));
-		OPTIX_CHECK(optixModuleDestroy(module));
+		//OPTIX_CHECK(optixModuleDestroy(module));
 
 		//OPTIX_CHECK(optixDeviceContextDestroy(context));
 	}
