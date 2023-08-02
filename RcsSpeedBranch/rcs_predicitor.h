@@ -426,6 +426,8 @@ private:
 	OptixPipeline pipeline = nullptr;
 	OptixModule module = nullptr;
 
+	OptixPipelineCompileOptions pipeline_compile_options = {};
+
 	InstanceAccelData ias;
 	std::vector<std::pair<ShapeType, HitGroupData>> hitgroup_datas;
 
@@ -525,6 +527,7 @@ void RcsPredictor::initOptix() {
 		mesh_sbt_indices.push_back(sbt_index);
 	}
 
+	// accel handling
 	// build mesh GAS
 	GeometryAccelData mesh_gas;
 	void* d_mesh_data;
@@ -551,6 +554,41 @@ void RcsPredictor::initOptix() {
 
 	BuildIAS(context, ias, instances);
 
+	//
+	// Create module
+	//
+	//	OptixModule module = nullptr;
+
+	OptixModuleCompileOptions module_compile_options = {};
+	module_compile_options.maxRegisterCount =
+		OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT;
+	module_compile_options.optLevel = OPTIX_COMPILE_OPTIMIZATION_LEVEL_0;
+
+	module_compile_options.debugLevel = OPTIX_COMPILE_DEBUG_LEVEL_FULL;
+
+	pipeline_compile_options.usesMotionBlur = false;
+	pipeline_compile_options.traversableGraphFlags =
+		OPTIX_TRAVERSABLE_GRAPH_FLAG_ALLOW_ANY;
+	pipeline_compile_options.numPayloadValues = 2;
+	pipeline_compile_options.numAttributeValues = 5;
+
+	pipeline_compile_options.exceptionFlags =
+		OPTIX_EXCEPTION_FLAG_TRACE_DEPTH;
+
+	pipeline_compile_options.pipelineLaunchParamsVariableName = "params";
+	pipeline_compile_options.usesPrimitiveTypeFlags =
+		OPTIX_PRIMITIVE_TYPE_FLAGS_TRIANGLE;
+
+	size_t inputSize = 0;
+	size_t sizeof_log = sizeof(log);
+	std::cout << OPTIX_SAMPLE_DIR << std::endl;
+	const char* input = sutil::getInputData(
+		OPTIX_SAMPLE_NAME, OPTIX_SAMPLE_DIR, "triangles_rcs.cu", inputSize);
+
+	OPTIX_CHECK_LOG(optixModuleCreate(
+		context, &module_compile_options, &pipeline_compile_options, input,
+		inputSize, log, &sizeof_log, &module));
+
 
 
 }
@@ -560,47 +598,6 @@ double RcsPredictor::CalculateRcs(double phi, double theta) {
 	float3 observer_pos = make_float3(radius, phi, theta);
 	//CUDA_CHECK(cudaFree(0));
 
-
-	// accel handling
-
-
-	//
-	// Create module
-	//
-	//	OptixModule module = nullptr;
-
-	OptixPipelineCompileOptions pipeline_compile_options = {};
-	{
-		OptixModuleCompileOptions module_compile_options = {};
-		module_compile_options.maxRegisterCount =
-			OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT;
-		module_compile_options.optLevel = OPTIX_COMPILE_OPTIMIZATION_LEVEL_0;
-
-		module_compile_options.debugLevel = OPTIX_COMPILE_DEBUG_LEVEL_FULL;
-
-		pipeline_compile_options.usesMotionBlur = false;
-		pipeline_compile_options.traversableGraphFlags =
-			OPTIX_TRAVERSABLE_GRAPH_FLAG_ALLOW_ANY;
-		pipeline_compile_options.numPayloadValues = 2;
-		pipeline_compile_options.numAttributeValues = 5;
-
-		pipeline_compile_options.exceptionFlags =
-			OPTIX_EXCEPTION_FLAG_TRACE_DEPTH;
-
-		pipeline_compile_options.pipelineLaunchParamsVariableName = "params";
-		pipeline_compile_options.usesPrimitiveTypeFlags =
-			OPTIX_PRIMITIVE_TYPE_FLAGS_TRIANGLE;
-
-		size_t inputSize = 0;
-		size_t sizeof_log = sizeof(log);
-		std::cout << OPTIX_SAMPLE_DIR << std::endl;
-		const char* input = sutil::getInputData(
-			OPTIX_SAMPLE_NAME, OPTIX_SAMPLE_DIR, "triangles_rcs.cu", inputSize);
-
-		OPTIX_CHECK_LOG(optixModuleCreate(
-			context, &module_compile_options, &pipeline_compile_options, input,
-			inputSize, log, &sizeof_log, &module));
-	}
 
 	//
 	// Create program groups
