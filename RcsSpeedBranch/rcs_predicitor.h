@@ -430,6 +430,7 @@ private:
 	OptixProgramGroup hitgroup_prog_group_triangle = nullptr;
 
 	OptixPipelineCompileOptions pipeline_compile_options = {};
+	OptixShaderBindingTable sbt = {};
 
 	InstanceAccelData ias;
 	std::vector<std::pair<ShapeType, HitGroupData>> hitgroup_datas;
@@ -455,12 +456,18 @@ RcsPredictor::RcsPredictor() {
 }
 
 RcsPredictor::~RcsPredictor() {
+	//
+// Cleanup
+//
 	cout << "cleaning optix" << endl;
-
+	CUDA_CHECK(cudaFree(reinterpret_cast<void*>(sbt.raygenRecord)));
+	CUDA_CHECK(cudaFree(reinterpret_cast<void*>(sbt.missRecordBase)));
+	CUDA_CHECK(cudaFree(reinterpret_cast<void*>(sbt.hitgroupRecordBase)));
 	OPTIX_CHECK(optixPipelineDestroy(pipeline));
 	OPTIX_CHECK(optixProgramGroupDestroy(hitgroup_prog_group_triangle));
 	OPTIX_CHECK(optixProgramGroupDestroy(miss_prog_group));
 	OPTIX_CHECK(optixProgramGroupDestroy(raygen_prog_group));
+
 	OPTIX_CHECK(optixModuleDestroy(module));
 
 	OPTIX_CHECK(optixDeviceContextDestroy(context));
@@ -683,18 +690,10 @@ void RcsPredictor::initOptix() {
 		));
 	}
 
-}
-
-double RcsPredictor::CalculateRcs(double phi, double theta) {
-	// phi theta in radian
-	float3 observer_pos = make_float3(radius, phi, theta);
-	//CUDA_CHECK(cudaFree(0));
-
-
 	//
 	// Set up shader binding table
 	//
-	OptixShaderBindingTable sbt = {};
+	//OptixShaderBindingTable sbt = {};
 	{
 		CUdeviceptr raygen_record;
 		const size_t raygen_record_size = sizeof(RayGenSbtRecord);
@@ -747,6 +746,16 @@ double RcsPredictor::CalculateRcs(double phi, double theta) {
 		sbt.hitgroupRecordCount = static_cast<uint32_t>(hitgroup_datas.size());
 
 	}
+
+}
+
+double RcsPredictor::CalculateRcs(double phi, double theta) {
+	// phi theta in radian
+	float3 observer_pos = make_float3(radius, phi, theta);
+	//CUDA_CHECK(cudaFree(0));
+
+
+
 
 	sutil::CUDAOutputBuffer<Result> result(
 		sutil::CUDAOutputBufferType::CUDA_DEVICE, rays_dimension,
@@ -809,14 +818,7 @@ double RcsPredictor::CalculateRcs(double phi, double theta) {
 		cout << "ar : " << ar << endl;
 	}
 
-	//
-	// Cleanup
-	//
-	{
-		CUDA_CHECK(cudaFree(reinterpret_cast<void*>(sbt.raygenRecord)));
-		CUDA_CHECK(cudaFree(reinterpret_cast<void*>(sbt.missRecordBase)));
-		CUDA_CHECK(cudaFree(reinterpret_cast<void*>(sbt.hitgroupRecordBase)));
-	}
+
 	return rcs_ori;
 }
 
