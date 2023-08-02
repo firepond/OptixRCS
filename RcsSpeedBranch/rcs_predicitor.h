@@ -457,7 +457,7 @@ RcsPredictor::RcsPredictor() {
 RcsPredictor::~RcsPredictor() {
 	cout << "cleaning optix" << endl;
 
-	//OPTIX_CHECK(optixPipelineDestroy(pipeline));
+	OPTIX_CHECK(optixPipelineDestroy(pipeline));
 	OPTIX_CHECK(optixProgramGroupDestroy(hitgroup_prog_group_triangle));
 	OPTIX_CHECK(optixProgramGroupDestroy(miss_prog_group));
 	OPTIX_CHECK(optixProgramGroupDestroy(raygen_prog_group));
@@ -641,19 +641,11 @@ void RcsPredictor::initOptix() {
 
 	}
 
-}
-
-double RcsPredictor::CalculateRcs(double phi, double theta) {
-	// phi theta in radian
-	float3 observer_pos = make_float3(radius, phi, theta);
-	//CUDA_CHECK(cudaFree(0));
-
-
 
 	//
 	// Link pipeline
 	//
-	OptixPipeline pipeline = nullptr;
+	//OptixPipeline pipeline = nullptr;
 	{
 
 
@@ -690,6 +682,14 @@ double RcsPredictor::CalculateRcs(double phi, double theta) {
 			2  // maxTraversableDepth
 		));
 	}
+
+}
+
+double RcsPredictor::CalculateRcs(double phi, double theta) {
+	// phi theta in radian
+	float3 observer_pos = make_float3(radius, phi, theta);
+	//CUDA_CHECK(cudaFree(0));
+
 
 	//
 	// Set up shader binding table
@@ -816,14 +816,6 @@ double RcsPredictor::CalculateRcs(double phi, double theta) {
 		CUDA_CHECK(cudaFree(reinterpret_cast<void*>(sbt.raygenRecord)));
 		CUDA_CHECK(cudaFree(reinterpret_cast<void*>(sbt.missRecordBase)));
 		CUDA_CHECK(cudaFree(reinterpret_cast<void*>(sbt.hitgroupRecordBase)));
-
-		//OPTIX_CHECK(optixPipelineDestroy(pipeline));
-		//OPTIX_CHECK(optixProgramGroupDestroy(hitgroup_prog_group_triangle));
-		//OPTIX_CHECK(optixProgramGroupDestroy(miss_prog_group));
-		//OPTIX_CHECK(optixProgramGroupDestroy(raygen_prog_group));
-		//OPTIX_CHECK(optixModuleDestroy(module));
-
-		//OPTIX_CHECK(optixDeviceContextDestroy(context));
 	}
 	return rcs_ori;
 }
