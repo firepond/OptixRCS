@@ -95,20 +95,6 @@ int main(int argc, char* argv[]) {
     std::ofstream out_stream;
     out_stream.open(csv_file);
 
-    OptixAabb aabb;
-    vector<float3> vertices;
-    vector<uint3> mesh_indices;
-
-    aabb = ReadObjMesh(obj_file, vertices, mesh_indices);
-
-    float3 min_mesh = make_float3(aabb.minX, aabb.minY, aabb.minZ);
-    float3 max_mesh = make_float3(aabb.maxX, aabb.maxY, aabb.maxZ);
-
-    float3 center = (min_mesh + max_mesh) / 2;
-    double radius = length(min_mesh - max_mesh) / 2.0f;
-    cout << "model: " << test_model << endl;
-    cout << "Radius: " << radius << endl;
-
     int phi_count = ceil((phi_end - phi_start) / phi_interval) + 1;
     int theta_count = ceil((theta_end - theta_start) / theta_interval) + 1;
 
@@ -118,22 +104,22 @@ int main(int argc, char* argv[]) {
     cout << "Theta: [" << theta_start << ":" << theta_end << ":" << theta_count
          << "]" << endl;
 
+    RcsPredictor predicitor;
+    predicitor.init(obj_file, rays_per_lamada, freq);
+
     // [0, (phi_count-1)]
     for (int phi_i = 0; phi_i < phi_count; phi_i++) {
         double cur_phi = phi_start + phi_interval * phi_i;
+        // radian of phi
+        double phi_radian = cur_phi * M_PI / 180.0;
+
         for (int theta_i = 0; theta_i < theta_count; theta_i++) {
             double cur_theta = theta_start + theta_interval * theta_i;
 
-            double theta_radian =
-                cur_theta * M_PI / 180.0;                // radian of elevation
-            double phi_radian = cur_phi * M_PI / 180.0;  // radian of phi
+            // radian of elevation
+            double theta_radian = cur_theta * M_PI / 180.0;
 
-            float3 observer_pos = make_float3(radius, phi_radian, theta_radian);
-
-            RcsPredicitor predicitor;
-            double rcs_ori =
-                predicitor.CalculateRcs(vertices, mesh_indices, observer_pos,
-                                        rays_per_lamada, center, freq);
+            double rcs_ori = predicitor.CalculateRcs(phi_radian, theta_radian);
             // double rcs_ori = 100.0f;
 
             double rcs = 10 * log10(rcs_ori);
