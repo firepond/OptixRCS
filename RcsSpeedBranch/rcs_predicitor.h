@@ -425,6 +425,9 @@ private:
 	OptixDeviceContext context = nullptr;
 	OptixPipeline pipeline = nullptr;
 	OptixModule module = nullptr;
+	OptixProgramGroup raygen_prog_group = nullptr;
+	OptixProgramGroup miss_prog_group = nullptr;
+	OptixProgramGroup hitgroup_prog_group_triangle = nullptr;
 
 	OptixPipelineCompileOptions pipeline_compile_options = {};
 
@@ -454,9 +457,13 @@ RcsPredictor::RcsPredictor() {
 RcsPredictor::~RcsPredictor() {
 	cout << "cleaning optix" << endl;
 
-	OPTIX_CHECK(optixDeviceContextDestroy(context));
-	OPTIX_CHECK(optixModuleDestroy(module));
 	//OPTIX_CHECK(optixPipelineDestroy(pipeline));
+	OPTIX_CHECK(optixProgramGroupDestroy(hitgroup_prog_group_triangle));
+	OPTIX_CHECK(optixProgramGroupDestroy(miss_prog_group));
+	OPTIX_CHECK(optixProgramGroupDestroy(raygen_prog_group));
+	OPTIX_CHECK(optixModuleDestroy(module));
+
+	OPTIX_CHECK(optixDeviceContextDestroy(context));
 }
 
 void RcsPredictor::init(const string& obj_filename, int rays_per_lamada,
@@ -589,22 +596,12 @@ void RcsPredictor::initOptix() {
 		context, &module_compile_options, &pipeline_compile_options, input,
 		inputSize, log, &sizeof_log, &module));
 
-
-
-}
-
-double RcsPredictor::CalculateRcs(double phi, double theta) {
-	// phi theta in radian
-	float3 observer_pos = make_float3(radius, phi, theta);
-	//CUDA_CHECK(cudaFree(0));
-
-
 	//
 	// Create program groups
 	//
-	OptixProgramGroup raygen_prog_group = nullptr;
-	OptixProgramGroup miss_prog_group = nullptr;
-	OptixProgramGroup hitgroup_prog_group_triangle = nullptr;
+	//OptixProgramGroup raygen_prog_group = nullptr;
+	//OptixProgramGroup miss_prog_group = nullptr;
+	//OptixProgramGroup hitgroup_prog_group_triangle = nullptr;
 	//OptixProgramGroup hitgroup_prog_group_sphere = nullptr;
 	{
 		OptixProgramGroupOptions program_group_options =
@@ -643,6 +640,15 @@ double RcsPredictor::CalculateRcs(double phi, double theta) {
 				&hitgroup_prog_group_triangle));
 
 	}
+
+}
+
+double RcsPredictor::CalculateRcs(double phi, double theta) {
+	// phi theta in radian
+	float3 observer_pos = make_float3(radius, phi, theta);
+	//CUDA_CHECK(cudaFree(0));
+
+
 
 	//
 	// Link pipeline
@@ -812,9 +818,9 @@ double RcsPredictor::CalculateRcs(double phi, double theta) {
 		CUDA_CHECK(cudaFree(reinterpret_cast<void*>(sbt.hitgroupRecordBase)));
 
 		//OPTIX_CHECK(optixPipelineDestroy(pipeline));
-		OPTIX_CHECK(optixProgramGroupDestroy(hitgroup_prog_group_triangle));
-		OPTIX_CHECK(optixProgramGroupDestroy(miss_prog_group));
-		OPTIX_CHECK(optixProgramGroupDestroy(raygen_prog_group));
+		//OPTIX_CHECK(optixProgramGroupDestroy(hitgroup_prog_group_triangle));
+		//OPTIX_CHECK(optixProgramGroupDestroy(miss_prog_group));
+		//OPTIX_CHECK(optixProgramGroupDestroy(raygen_prog_group));
 		//OPTIX_CHECK(optixModuleDestroy(module));
 
 		//OPTIX_CHECK(optixDeviceContextDestroy(context));
