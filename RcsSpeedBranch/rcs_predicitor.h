@@ -672,8 +672,6 @@ double RcsPredictor::CalculateRcs(double phi, double theta) {
 
         OptixPipelineLinkOptions pipeline_link_options = {};
         pipeline_link_options.maxTraceDepth = max_trace_depth;
-        // pipeline_link_options.debugLevel =
-        // OPTIX_COMPILE_DEBUG_LEVEL_FULL;
 
         size_t sizeof_log = sizeof(log);
         OPTIX_CHECK_LOG(optixPipelineCreate(
