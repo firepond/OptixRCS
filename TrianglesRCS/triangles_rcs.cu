@@ -154,10 +154,16 @@ extern "C" __global__ void __raygen__rg() {
 	float phi = params.observer_pos.y;
 	float theta = params.observer_pos.z;
 
-	// H wave, [x,y,0]*ray_direction == 0
-	 //pld.polarization = make_float3(-sinf(phi), cosf(phi), 0.0f);
-	 // V wave
-	pld.polarization = make_float3(cosf(phi) * cosf(theta), sinf(phi) * cosf(theta), -sinf(theta));
+	if (params.type == HH) {
+		pld.polarization = make_float3(-sinf(phi), cosf(phi), 0.0f);
+	}
+	else if (params.type == VV) {
+		pld.polarization = make_float3(cosf(phi) * cosf(theta), sinf(phi) * cosf(theta), -sinf(theta));
+	}
+	else {
+		pld.polarization = make_float3(-sinf(phi), cosf(phi), 0.0f);
+	}
+
 
 	pld.tpath = 0.0f;
 	pld.ray_id = idx.x + dim.x * idx.y;

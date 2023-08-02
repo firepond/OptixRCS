@@ -3,6 +3,13 @@
 #ifndef RCS_PARAMS_
 #define RCS_PARAMS_
 
+// theta polarization corresponds to vertical polarization
+// while phi polarization corresponds to horizontal polarization
+// H wave, [x,y,0]*ray_direction == 0
+ //
+ // V wave
+enum PolarizationTypes { HH,VV };
+
 struct Result {
     unsigned int rid;
     float au_real;
@@ -19,7 +26,7 @@ struct Params {
     float3 observer_pos;
     float3 box_center;
     float freq;
-
+    PolarizationTypes type;
     OptixTraversableHandle handle;
 };
 

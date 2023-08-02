@@ -410,7 +410,7 @@ double CalculateRcs(vector<float3>& vertices, vector<uint3>& mesh_indices, float
 	int num_sphere = 1;
 	double lamada = c / freq;
 	double lamda_nums = observer_pos.x * 2 / lamada;
-	int rays_dimension = ceil(lamda_nums * rays_per_lamada + 1) + 1;
+	int rays_dimension = ceil(lamda_nums * rays_per_lamada + 1.0f) + 1;
 	cout << "using " << rays_dimension << " rays perdimension" << endl;
 
 	char log[2048];  // For error reporting from OptiX creation functions
@@ -445,9 +445,9 @@ double CalculateRcs(vector<float3>& vertices, vector<uint3>& mesh_indices, float
 	//
 	// accel handling
 	//
-	OptixTraversableHandle gas_handle;
+	//OptixTraversableHandle gas_handle;
 	InstanceAccelData ias;
-	CUdeviceptr d_gas_output_buffer;
+	//CUdeviceptr d_gas_output_buffer;
 	std::vector<std::pair<ShapeType, HitGroupData>> hitgroup_datas;
 	{
 		// Use default options for simplicity.  In a real use case we would
@@ -530,7 +530,7 @@ double CalculateRcs(vector<float3>& vertices, vector<uint3>& mesh_indices, float
 	// Create module
 	//
 	OptixModule module = nullptr;
-	OptixModule sphere_module = nullptr;
+	//OptixModule sphere_module = nullptr;
 	OptixPipelineCompileOptions pipeline_compile_options = {};
 	{
 		OptixModuleCompileOptions module_compile_options = {};
@@ -753,6 +753,7 @@ double CalculateRcs(vector<float3>& vertices, vector<uint3>& mesh_indices, float
 	params.observer_pos = observer_pos;
 	params.box_center = center;
 	params.freq = freq;
+	params.type = VV;
 
 	CUdeviceptr d_param;
 
