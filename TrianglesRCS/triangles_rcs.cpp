@@ -41,14 +41,15 @@ int main(int argc, char* argv[]) {
 	auto sum_start = high_resolution_clock::now();
 
 	//string test_model = "corner_reflector";
-	string test_model = "d_reflector";
+	//string test_model = "d_reflector";
+	string test_model = "large_trihedral_reflector";
 
 	string rootPathPrefix = "C:/development/optix/OptixRCS";
 
-	double c = 299792458.0;
-	int rays_per_dimension = 3000;
+	//double c = 299792458.0;
+	//int rays_per_dimension = 3000;
 	// 3Ghz
-	double freq = 15E9;
+	double freq = 18E9;
 
 	// start and end included
 	double phi_start = 45;
@@ -111,8 +112,8 @@ int main(int argc, char* argv[]) {
 	cout << "Radius: " << radius << endl;
 
 
-	int phi_count = (int)(phi_end - phi_start) / phi_interval + 1;
-	int theta_count = (int)(theta_end - theta_start) / theta_interval + 1;
+	int phi_count = ceil((phi_end - phi_start) / phi_interval) + 1;
+	int theta_count = ceil((theta_end - theta_start) / theta_interval) + 1;
 
 	int rays_per_lamada = 100;
 	cout << "Phi: [" << phi_start << ":" << phi_end << ":" << phi_count << "]" << endl;
@@ -126,8 +127,8 @@ int main(int argc, char* argv[]) {
 			double cur_theta = theta_start + theta_interval * theta_i;
 
 
-			double theta_radian = cur_theta * M_PIf / 180.0f;  // radian of elevation
-			double phi_radian = cur_phi * M_PIf / 180.0f;  // radian of phi
+			double theta_radian = cur_theta * M_PI / 180.0;  // radian of elevation
+			double phi_radian = cur_phi * M_PI / 180.0;  // radian of phi
 
 			float3 observer_pos = make_float3(radius, phi_radian, theta_radian);
 
