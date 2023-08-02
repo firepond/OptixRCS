@@ -425,11 +425,26 @@ private:
 	void initOptix();
 
 public:
+	RcsPredictor();
+
+	~RcsPredictor();
+
+
+
+
 	void RcsPredictor::init(const string& obj_filename, int rays_per_lamada,
 		double freq);
 
 	double RcsPredictor::CalculateRcs(double phi, double theta);
 };
+
+RcsPredictor::RcsPredictor() {
+
+}
+
+RcsPredictor::~RcsPredictor() {
+
+}
 
 void RcsPredictor::init(const string& obj_filename, int rays_per_lamada,
 	double freq) {
