@@ -33,8 +33,8 @@ using std::endl;
 using std::string;
 using std::to_string;
 
-#ifndef TRIANGLES_RCS_
-#define TRIANGLES_RCS_
+#ifndef TRIANGLES_RCS_SPEED
+#define TRIANGLES_RCS_SPEED
 
 template <typename T>
 struct SbtRecord {
@@ -68,6 +68,9 @@ struct InstanceAccelData {
 
 	CUdeviceptr d_instances_buffer;
 };
+
+
+
 
 void BuildGAS(OptixDeviceContext context, GeometryAccelData& gas,
 	OptixBuildInput& build_input) {
@@ -403,17 +406,29 @@ OptixAabb ReadObjMesh(const string& obj_filename,
 	return aabb;
 }
 
+class RcsPredicitor {
 
-double CalculateRcs(vector<float3>& vertices, vector<uint3>& mesh_indices, float3& observer_pos, int& rays_per_lamada, float3& center, double& freq) {
+private:
 	bool is_debug = false;
-	double c = 299792458.0;
-	int num_sphere = 1;
+	const double c = 299792458.0;
+	const int num_sphere = 1;
+	char log[2048];  // For error reporting from OptiX creation functions
+
+public:
+
+	double RcsPredicitor::CalculateRcs(vector<float3>& vertices, vector<uint3>& mesh_indices, float3& observer_pos, int& rays_per_lamada, float3& center, double& freq);
+
+};
+
+
+double RcsPredicitor::CalculateRcs(vector<float3>& vertices, vector<uint3>& mesh_indices, float3& observer_pos, int& rays_per_lamada, float3& center, double& freq) {
+
 	double lamada = c / freq;
 	double lamda_nums = observer_pos.x * 2 / lamada;
 	int rays_dimension = ceil(lamda_nums * rays_per_lamada + 1.0f) + 1;
-	cout << "using " << rays_dimension << " rays perdimension" << endl;
-
-	char log[2048];  // For error reporting from OptiX creation functions
+	if (is_debug) {
+		cout << "using " << rays_dimension << " rays perdimension" << endl;
+	}
 
 	//
 	// Initialize CUDA and create OptiX context
@@ -798,9 +813,12 @@ double CalculateRcs(vector<float3>& vertices, vector<uint3>& mesh_indices, float
 
 	auto sum_end = high_resolution_clock::now();
 	ms_int = duration_cast<milliseconds>(sum_end - sum_start);
-	std::cout << "rcs sum time usage: " << ms_int.count() << "ms\n";
-	cout << "au : " << au << endl;
-	cout << "ar : " << ar << endl;
+	if (is_debug) {
+		std::cout << "rcs sum time usage: " << ms_int.count() << "ms\n";
+		cout << "au : " << au << endl;
+		cout << "ar : " << ar << endl;
+	}
+
 
 	//
 	// Cleanup
