@@ -423,7 +423,8 @@ private:
 	int rays_per_lamada;
 
 	OptixDeviceContext context = nullptr;
-
+	InstanceAccelData ias;
+	std::vector<std::pair<ShapeType, HitGroupData>> hitgroup_datas;
 
 	void initOptix();
 
@@ -473,11 +474,15 @@ void RcsPredictor::init(const string& obj_filename, int rays_per_lamada,
 void RcsPredictor::initOptix() {
 	// Initialize CUDA and create OptiX context
 
+
+
 	// Initialize CUDA
 	CUDA_CHECK(cudaFree(0));
 
 	// Initialize the OptiX API, loading all API entry points
 	OPTIX_CHECK(optixInit());
+
+
 
 	// Specify context options
 	OptixDeviceContextOptions options = {};
@@ -494,20 +499,13 @@ void RcsPredictor::initOptix() {
 	CUcontext cu_context = 0;  // zero means take the current context
 	OPTIX_CHECK(optixDeviceContextCreate(cu_context, &options, &context));
 
-}
 
-double RcsPredictor::CalculateRcs(double phi, double theta) {
-	// phi theta in radian
-	float3 observer_pos = make_float3(radius, phi, theta);
-	//CUDA_CHECK(cudaFree(0));
 
-	//
-	// accel handling
-	//
+
 	// OptixTraversableHandle gas_handle;
-	InstanceAccelData ias;
+	//InstanceAccelData ias;
 	// CUdeviceptr d_gas_output_buffer;
-	std::vector<std::pair<ShapeType, HitGroupData>> hitgroup_datas;
+	//std::vector<std::pair<ShapeType, HitGroupData>> hitgroup_datas;
 	{
 		// Use default options for simplicity.  In a real use case we would
 		// want to enable compaction, etc
@@ -551,6 +549,18 @@ double RcsPredictor::CalculateRcs(double phi, double theta) {
 
 		BuildIAS(context, ias, instances);
 	}
+
+
+}
+
+double RcsPredictor::CalculateRcs(double phi, double theta) {
+	// phi theta in radian
+	float3 observer_pos = make_float3(radius, phi, theta);
+	//CUDA_CHECK(cudaFree(0));
+
+	
+	// accel handling
+	
 
 	//
 	// Create module
