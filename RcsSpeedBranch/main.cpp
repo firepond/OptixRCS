@@ -135,13 +135,12 @@ int main(int argc, char* argv[]) {
                        << rcs << ", " << endl;
         }
     }
-
     auto sum_end = high_resolution_clock::now();
     auto ms_int = duration_cast<milliseconds>(sum_end - sum_start);
     std::cout << "rcs sum time usage for " << phi_count * theta_count
               << " points : " << ms_int.count() << "ms\n";
 
     out_stream.close();
-
+    
     return 0;
 }

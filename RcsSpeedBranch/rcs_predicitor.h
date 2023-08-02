@@ -422,6 +422,9 @@ private:
 	int rays_dimension;
 	int rays_per_lamada;
 
+	OptixDeviceContext context = nullptr;
+
+
 	void initOptix();
 
 public:
@@ -443,7 +446,8 @@ RcsPredictor::RcsPredictor() {
 }
 
 RcsPredictor::~RcsPredictor() {
-
+	OPTIX_CHECK(optixDeviceContextDestroy(context));
+	cout << "cleaning optix" << endl;
 }
 
 void RcsPredictor::init(const string& obj_filename, int rays_per_lamada,
@@ -466,38 +470,36 @@ void RcsPredictor::init(const string& obj_filename, int rays_per_lamada,
 	initOptix();
 }
 
-void RcsPredictor::initOptix() {}
+void RcsPredictor::initOptix() {
+	// Initialize CUDA and create OptiX context
+
+	// Initialize CUDA
+	CUDA_CHECK(cudaFree(0));
+
+	// Initialize the OptiX API, loading all API entry points
+	OPTIX_CHECK(optixInit());
+
+	// Specify context options
+	OptixDeviceContextOptions options = {};
+	options.logCallbackFunction = &ContextLog;
+	if (is_debug) {
+		options.logCallbackLevel = 4;
+	}
+	else {
+		options.logCallbackLevel = 0;
+	}
+
+	// Associate a CUDA context (and therefore a specific GPU) with this
+	// device context
+	CUcontext cu_context = 0;  // zero means take the current context
+	OPTIX_CHECK(optixDeviceContextCreate(cu_context, &options, &context));
+
+}
 
 double RcsPredictor::CalculateRcs(double phi, double theta) {
 	// phi theta in radian
 	float3 observer_pos = make_float3(radius, phi, theta);
-
-	//
-	// Initialize CUDA and create OptiX context
-	//
-	OptixDeviceContext context = nullptr;
-	{
-		// Initialize CUDA
-		CUDA_CHECK(cudaFree(0));
-
-		// Initialize the OptiX API, loading all API entry points
-		OPTIX_CHECK(optixInit());
-
-		// Specify context options
-		OptixDeviceContextOptions options = {};
-		options.logCallbackFunction = &ContextLog;
-		if (is_debug) {
-			options.logCallbackLevel = 4;
-		}
-		else {
-			options.logCallbackLevel = 0;
-		}
-
-		// Associate a CUDA context (and therefore a specific GPU) with this
-		// device context
-		CUcontext cu_context = 0;  // zero means take the current context
-		OPTIX_CHECK(optixDeviceContextCreate(cu_context, &options, &context));
-	}
+	//CUDA_CHECK(cudaFree(0));
 
 	//
 	// accel handling
@@ -638,7 +640,7 @@ double RcsPredictor::CalculateRcs(double phi, double theta) {
 	//
 	OptixPipeline pipeline = nullptr;
 	{
-		
+
 
 		OptixProgramGroup program_groups[] = {
 	 raygen_prog_group, miss_prog_group, hitgroup_prog_group_triangle };
@@ -728,7 +730,7 @@ double RcsPredictor::CalculateRcs(double phi, double theta) {
 		sbt.hitgroupRecordStrideInBytes =
 			static_cast<uint32_t>(sizeof(HitGroupSbtRecord));
 		sbt.hitgroupRecordCount = static_cast<uint32_t>(hitgroup_datas.size());
-		
+
 	}
 
 	sutil::CUDAOutputBuffer<Result> result(
@@ -806,7 +808,7 @@ double RcsPredictor::CalculateRcs(double phi, double theta) {
 		OPTIX_CHECK(optixProgramGroupDestroy(raygen_prog_group));
 		OPTIX_CHECK(optixModuleDestroy(module));
 
-		OPTIX_CHECK(optixDeviceContextDestroy(context));
+		//OPTIX_CHECK(optixDeviceContextDestroy(context));
 	}
 	return rcs_ori;
 }
