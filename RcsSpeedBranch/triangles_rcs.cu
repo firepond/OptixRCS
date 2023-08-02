@@ -308,35 +308,3 @@ extern "C" __global__ void __closesthit__triangle() {
 
 	trace(params.handle, hit_point, reflect_dir, pldptr, 0, 1, 0);
 }
-
-extern "C" __global__ void __closesthit__sphere() {
-	Payload* pldptr = getPayload();
-	unsigned int sphe_id = optixGetPrimitiveIndex();
-
-	float ray_tmax = optixGetRayTmax();
-	float total_path_length = ray_tmax + pldptr->tpath;
-
-	pldptr->tpath = total_path_length;
-}
-
-extern "C" __global__ void __intersection__sphere() {
-	HitGroupData* data = (HitGroupData*)optixGetSbtDataPointer();
-
-	const int prim_idx = optixGetPrimitiveIndex();
-	const SphereData sphere_data = ((SphereData*)data->shape_data)[prim_idx];
-
-	const float3 center = sphere_data.center;
-	const float radius = sphere_data.radius;
-
-	const float3 origin = optixGetObjectRayOrigin();
-	const float3 direction = optixGetObjectRayDirection();
-
-	Payload* pldptr = getPayload();
-	float ray_tmax = optixGetRayTmax();
-
-	float total_path_length = ray_tmax + pldptr->tpath;
-	pldptr->tpath = total_path_length;
-	// float result = ((1.0f * 1.0f * 1.0f) / (16.0f * M_PIf * M_PIf)) *
-	//                (pldptr->refIdx / total_path_length);
-	params.result[pldptr->ray_id].rid = pldptr->ray_id;
-}
