@@ -11,7 +11,7 @@
 enum PolarizationTypes { HH,VV };
 
 struct Result {
-    unsigned int rid;
+    //unsigned int rid;
     float au_real;
     float au_img;
     float ar_real;

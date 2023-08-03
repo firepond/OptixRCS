@@ -106,7 +106,7 @@ int main(int argc, char* argv[]) {
          << "]" << endl;
 
     RcsPredictor predicitor;
-    predicitor.is_debug = true;
+    predicitor.is_debug = false;
     predicitor.init(obj_file, rays_per_lamada, freq);
 
     // [0, (phi_count-1)]

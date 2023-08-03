@@ -793,15 +793,11 @@ double RcsPredictor::CalculateRcs(double phi, double theta) {
 	double au_img = 0;
 	double ar_real = 0;
 	double ar_img = 0;
-	//int hit_count = 0;
 
 #pragma omp parallel for reduction (+:au_real, au_img, ar_real, ar_img)
 	for (int i = 0; i < size; i++) {
 		Result cur_result = results[i];
 		if (cur_result.refCount > 0) {
-			//hit_count++;
-			/*		au += std::complex<double>(cur_result.au_real, cur_result.au_img);
-					ar += std::complex<double>(cur_result.ar_real, cur_result.ar_img);*/
 			au_real += cur_result.au_real;
 			au_img += cur_result.au_img;
 			ar_real += cur_result.ar_real;

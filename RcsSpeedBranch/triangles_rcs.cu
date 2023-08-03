@@ -128,8 +128,6 @@ static __forceinline__ __device__ void computeRay(uint3 idx, uint3 dim,
 }
 
 // TODO: to improve performance, pre-compute and pack the normals.
-// but here we compute them while tracing
-// available if BUILD_INPUT_TYPE TRIANGLES;
 __device__ __forceinline__ float3 getnormal(const unsigned int triId) {
 	float3 vertex[3];
 	OptixTraversableHandle gas_handle = optixGetGASTraversableHandle();
@@ -171,7 +169,7 @@ extern "C" __global__ void __raygen__rg() {
 	//if (pld.ray_id == 0) {
 	//	printf("vec1[0]: %d, vec1[1]: %d\n", params.vec_ptr[0], params.vec_ptr[1]);
 	//}
-	params.result[pld.ray_id].rid = pld.ray_id;
+	//params.result[pld.ray_id].rid = pld.ray_id;
 
 	Payload* pldptr = &pld;
 
