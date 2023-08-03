@@ -19,7 +19,6 @@
 
 #ifndef TINYOBJLOADER_IMPLEMENTATION
 #define TINYOBJLOADER_IMPLEMENTATION
-//#include "RcsSpeedBranch/reduce.cu"
 #include "tiny_obj_loader.h"
 #endif
 
@@ -820,12 +819,10 @@ double RcsPredictor::CalculateRcs(double phi, double theta) {
 		cout << "ar : " << ar << endl;
 	}
 
-	// reduce << <gridsize, blocksize >> > (device_ptr);
 	CUDA_CHECK(cudaFree(reinterpret_cast<void*>(d_param)));
 	CUDA_CHECK(cudaFree(reinterpret_cast<void*>(device_ptr)));
 
 	free(results);
-	//wrapper();
 	return rcs_ori;
 }
 

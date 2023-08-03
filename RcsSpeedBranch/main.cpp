@@ -1,10 +1,4 @@
-#include <cuda.h>
-#include <cuda/helpers.h>
-#include <cuda_runtime.h>
-#include <optix.h>
-#include <optix_function_table_definition.h>
-#include <optix_stack_size.h>
-#include <optix_stubs.h>
+
 #include <sampleConfig.h>
 #include <sutil/CUDAOutputBuffer.h>
 #include <sutil/Camera.h>
