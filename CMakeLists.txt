@@ -128,7 +128,8 @@ if(WIN32)
 endif()
 
 # Find at least a 5.0 version of CUDA.
-find_package(CUDA 5.0 REQUIRED)
+find_package(CUDA 10.0 REQUIRED)
+find_package(CUDAToolkit 10.0 REQUIRED)
 
 # If NVRTC was enabled/disabled, reset OPTIXIR/PTX to default
 set( CUDA_NVRTC_ENABLED OFF CACHE BOOL "Use NVRTC to compile OPTIXIR/PTX at run-time instead of NVCC at build-time" )
@@ -393,6 +394,7 @@ include_directories( ${CMAKE_CURRENT_SOURCE_DIR}
                      "${CMAKE_BINARY_DIR}/include"
                      ${CMAKE_CURRENT_BINARY_DIR}
                      ${CUDA_INCLUDE_DIRS}
+                     ${CUDAToolkit_INCLUDE_DIRS}
                      )
 
 set(SAMPLES_CUDA_DIR ${CMAKE_CURRENT_SOURCE_DIR}/cuda)

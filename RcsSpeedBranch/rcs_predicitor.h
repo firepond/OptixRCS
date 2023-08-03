@@ -12,11 +12,14 @@
 
 #include <chrono>
 #include <iostream>
+#include <execution>
+
 
 #include "RcsSpeedBranch/rcs_params.h"
 
 #ifndef TINYOBJLOADER_IMPLEMENTATION
 #define TINYOBJLOADER_IMPLEMENTATION
+//#include "RcsSpeedBranch/reduce.cu"
 #include "tiny_obj_loader.h"
 #endif
 
@@ -400,8 +403,6 @@ OptixAabb ReadObjMesh(const string& obj_filename, vector<float3>& vertices,
 
 class RcsPredictor {
 private:
-	bool is_debug = false;
-
 	const double c = 299792458.0;
 	const uint32_t max_trace_depth = 10;
 
@@ -438,12 +439,11 @@ private:
 	void initOptix();
 
 public:
+	bool is_debug = false;
+
 	RcsPredictor();
 
 	~RcsPredictor();
-
-
-
 
 	void RcsPredictor::init(const string& obj_filename, int rays_per_lamada,
 		double freq);
@@ -451,14 +451,12 @@ public:
 	double RcsPredictor::CalculateRcs(double phi, double theta);
 };
 
-RcsPredictor::RcsPredictor() {
-
-}
+RcsPredictor::RcsPredictor() {}
 
 RcsPredictor::~RcsPredictor() {
 	//
-// Cleanup
-//
+	// Cleanup
+	//
 	cout << "cleaning optix" << endl;
 	CUDA_CHECK(cudaFree(reinterpret_cast<void*>(sbt.raygenRecord)));
 	CUDA_CHECK(cudaFree(reinterpret_cast<void*>(sbt.missRecordBase)));
@@ -496,15 +494,11 @@ void RcsPredictor::init(const string& obj_filename, int rays_per_lamada,
 void RcsPredictor::initOptix() {
 	// Initialize CUDA and create OptiX context
 
-
-
 	// Initialize CUDA
 	CUDA_CHECK(cudaFree(0));
 
 	// Initialize the OptiX API, loading all API entry points
 	OPTIX_CHECK(optixInit());
-
-
 
 	// Specify context options
 	OptixDeviceContextOptions options = {};
@@ -520,10 +514,6 @@ void RcsPredictor::initOptix() {
 	// device context
 	CUcontext cu_context = 0;  // zero means take the current context
 	OPTIX_CHECK(optixDeviceContextCreate(cu_context, &options, &context));
-
-
-
-
 
 	// Use default options for simplicity.  In a real use case we would
 	// want to enable compaction, etc
@@ -545,26 +535,24 @@ void RcsPredictor::initOptix() {
 	// build mesh GAS
 	GeometryAccelData mesh_gas;
 	void* d_mesh_data;
-	d_mesh_data = BuildTriangleGAS(context, mesh_gas, vertices,
-		mesh_indices, mesh_sbt_indices);
+	d_mesh_data = BuildTriangleGAS(context, mesh_gas, vertices, mesh_indices,
+		mesh_sbt_indices);
 
 	// HitGroupData
 	hitgroup_datas.emplace_back(ShapeType::Mesh, HitGroupData{ d_mesh_data });
-
 
 	std::vector<OptixInstance> instances;
 	uint32_t flags = OPTIX_INSTANCE_FLAG_NONE;
 
 	uint32_t sbt_offset = 0;
 	uint32_t instance_id = 0;
-	instances.emplace_back(
-		OptixInstance{ {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0},
-					  instance_id,
-					  sbt_offset,
-					  255,
-					  flags,
-					  mesh_gas.handle,
-					  {0, 0} });
+	instances.emplace_back(OptixInstance{ {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0},
+										 instance_id,
+										 sbt_offset,
+										 255,
+										 flags,
+										 mesh_gas.handle,
+										 {0, 0} });
 
 	BuildIAS(context, ias, instances);
 
@@ -586,8 +574,7 @@ void RcsPredictor::initOptix() {
 	pipeline_compile_options.numPayloadValues = 2;
 	pipeline_compile_options.numAttributeValues = 5;
 
-	pipeline_compile_options.exceptionFlags =
-		OPTIX_EXCEPTION_FLAG_TRACE_DEPTH;
+	pipeline_compile_options.exceptionFlags = OPTIX_EXCEPTION_FLAG_TRACE_DEPTH;
 
 	pipeline_compile_options.pipelineLaunchParamsVariableName = "params";
 	pipeline_compile_options.usesPrimitiveTypeFlags =
@@ -596,20 +583,20 @@ void RcsPredictor::initOptix() {
 	size_t inputSize = 0;
 	size_t sizeof_log = sizeof(log);
 	std::cout << OPTIX_SAMPLE_DIR << std::endl;
-	const char* input = sutil::getInputData(
-		OPTIX_SAMPLE_NAME, OPTIX_SAMPLE_DIR, "triangles_rcs.cu", inputSize);
+	const char* input = sutil::getInputData(OPTIX_SAMPLE_NAME, OPTIX_SAMPLE_DIR,
+		"triangles_rcs.cu", inputSize);
 
-	OPTIX_CHECK_LOG(optixModuleCreate(
-		context, &module_compile_options, &pipeline_compile_options, input,
+	OPTIX_CHECK_LOG(optixModuleCreate(context, &module_compile_options,
+		&pipeline_compile_options, input,
 		inputSize, log, &sizeof_log, &module));
 
 	//
 	// Create program groups
 	//
-	//OptixProgramGroup raygen_prog_group = nullptr;
-	//OptixProgramGroup miss_prog_group = nullptr;
-	//OptixProgramGroup hitgroup_prog_group_triangle = nullptr;
-	//OptixProgramGroup hitgroup_prog_group_sphere = nullptr;
+	// OptixProgramGroup raygen_prog_group = nullptr;
+	// OptixProgramGroup miss_prog_group = nullptr;
+	// OptixProgramGroup hitgroup_prog_group_triangle = nullptr;
+	// OptixProgramGroup hitgroup_prog_group_sphere = nullptr;
 	{
 		OptixProgramGroupOptions program_group_options =
 		{};  // Initialize to zeros
@@ -645,19 +632,15 @@ void RcsPredictor::initOptix() {
 				1,  // num program groups
 				&program_group_options, log, &sizeof_log,
 				&hitgroup_prog_group_triangle));
-
 	}
-
 
 	//
 	// Link pipeline
 	//
-	//OptixPipeline pipeline = nullptr;
+	// OptixPipeline pipeline = nullptr;
 	{
-
-
 		OptixProgramGroup program_groups[] = {
-	 raygen_prog_group, miss_prog_group, hitgroup_prog_group_triangle };
+			raygen_prog_group, miss_prog_group, hitgroup_prog_group_triangle };
 
 		OptixPipelineLinkOptions pipeline_link_options = {};
 		pipeline_link_options.maxTraceDepth = max_trace_depth;
@@ -693,7 +676,7 @@ void RcsPredictor::initOptix() {
 	//
 	// Set up shader binding table
 	//
-	//OptixShaderBindingTable sbt = {};
+	// OptixShaderBindingTable sbt = {};
 	{
 		CUdeviceptr raygen_record;
 		const size_t raygen_record_size = sizeof(RayGenSbtRecord);
@@ -718,8 +701,7 @@ void RcsPredictor::initOptix() {
 		// HitGroup
 		CUdeviceptr hitgroup_record;
 		size_t hitgroup_record_size =
-			sizeof(HitGroupSbtRecord) *
-			hitgroup_datas.size();  // triangle
+			sizeof(HitGroupSbtRecord) * hitgroup_datas.size();  // triangle
 		CUDA_CHECK(cudaMalloc(reinterpret_cast<void**>(&hitgroup_record),
 			hitgroup_record_size));
 
@@ -730,8 +712,6 @@ void RcsPredictor::initOptix() {
 		OPTIX_CHECK(optixSbtRecordPackHeader(hitgroup_prog_group_triangle,
 			&hg_sbt[hit_idx]));
 		hg_sbt[hit_idx].data = data;
-
-
 
 		CUDA_CHECK(cudaMemcpy(reinterpret_cast<void**>(hitgroup_record), hg_sbt,
 			hitgroup_record_size, cudaMemcpyHostToDevice));
@@ -744,25 +724,18 @@ void RcsPredictor::initOptix() {
 		sbt.hitgroupRecordStrideInBytes =
 			static_cast<uint32_t>(sizeof(HitGroupSbtRecord));
 		sbt.hitgroupRecordCount = static_cast<uint32_t>(hitgroup_datas.size());
-
 	}
-
 }
-
 
 double RcsPredictor::CalculateRcs(double phi, double theta) {
 	// phi theta in radian
 	float3 observer_pos = make_float3(radius, phi, theta);
-
-
 
 	//
 	// launch
 	//
 	CUstream stream;
 	CUDA_CHECK(cudaStreamCreate(&stream));
-
-
 
 	Params params;
 
@@ -779,17 +752,17 @@ double RcsPredictor::CalculateRcs(double phi, double theta) {
 
 	Result* device_ptr;
 
-	//allocate gpu memory to gpu pointer
+	// allocate gpu memory to gpu pointer
 	CUDA_CHECK(cudaMalloc((void**)&device_ptr, sizeof(Result) * size));
 
-	//copy data from host to device
-	CUDA_CHECK(cudaMemcpy(device_ptr, results, sizeof(Result) * size, cudaMemcpyHostToDevice));
+	// copy data from host to device
+	CUDA_CHECK(cudaMemcpy(device_ptr, results, sizeof(Result) * size,
+		cudaMemcpyHostToDevice));
 	params.result = device_ptr;
 
 	CUDA_SYNC_CHECK();
 
 	auto optix_start = high_resolution_clock::now();
-
 
 	CUdeviceptr d_param;
 	CUDA_CHECK(cudaMalloc(reinterpret_cast<void**>(&d_param), sizeof(Params)));
@@ -804,24 +777,39 @@ double RcsPredictor::CalculateRcs(double phi, double theta) {
 	auto ms_int = duration_cast<milliseconds>(optix_end - optix_start);
 	std::cout << "optix time usage: " << ms_int.count() << "ms\n";
 
-
-	CUDA_CHECK(cudaMemcpy( results, device_ptr, sizeof(Result) * size, cudaMemcpyDeviceToHost));
+	auto copy_start = high_resolution_clock::now();
+	CUDA_CHECK(cudaMemcpy(results, device_ptr, sizeof(Result) * size,
+		cudaMemcpyDeviceToHost));
 	CUDA_SYNC_CHECK();
 
+	auto copy_end = high_resolution_clock::now();
+	ms_int = duration_cast<milliseconds>(copy_end - copy_start);
+
+	std::cout << "result copy time usage: " << ms_int.count() << "ms\n";
 
 	auto sum_start = high_resolution_clock::now();
-	std::complex<double> au = 0;
-	std::complex<double> ar = 0;
-	int hit_count = 0;
-	for (int i = 0; i < rays_dimension * rays_dimension; i++) {
+
+	double au_real = 0;
+	double au_img = 0;
+	double ar_real = 0;
+	double ar_img = 0;
+	//int hit_count = 0;
+
+#pragma omp parallel for reduction (+:au_real, au_img, ar_real, ar_img)
+	for (int i = 0; i < size; i++) {
 		Result cur_result = results[i];
 		if (cur_result.refCount > 0) {
-			hit_count++;
-			au += std::complex<double>(cur_result.au_real, cur_result.au_img );
-			ar += std::complex<double>(cur_result.ar_real, cur_result.ar_img);
+			//hit_count++;
+			/*		au += std::complex<double>(cur_result.au_real, cur_result.au_img);
+					ar += std::complex<double>(cur_result.ar_real, cur_result.ar_img);*/
+			au_real += cur_result.au_real;
+			au_img += cur_result.au_img;
+			ar_real += cur_result.ar_real;
+			ar_img += cur_result.ar_img;
 		}
 	}
-
+	std::complex<double> au = std::complex<double>(au_real, au_img);
+	std::complex<double> ar = std::complex<double>(ar_real, ar_img);
 	double ausq = pow(abs(au), 2);
 	double arsq = pow(abs(ar), 2);
 	double rcs_ori = 4.0 * M_PI * (ausq + arsq);  // * 4 * pi
@@ -833,9 +821,16 @@ double RcsPredictor::CalculateRcs(double phi, double theta) {
 		cout << "au : " << au << endl;
 		cout << "ar : " << ar << endl;
 	}
+
+	dim3 blocksize(size);  // create 1D threadblock
+	dim3 gridsize(1);      // create 1D grid
+
+	// reduce << <gridsize, blocksize >> > (device_ptr);
 	CUDA_CHECK(cudaFree(reinterpret_cast<void*>(d_param)));
+	CUDA_CHECK(cudaFree(reinterpret_cast<void*>(device_ptr)));
 
 	free(results);
+	//wrapper();
 	return rcs_ori;
 }
 
