@@ -416,7 +416,6 @@ private:
 	float3 polarization;
 
 	double radius;
-	double freq;
 	double lamada;
 	double lamda_nums;
 	float waveNum;
@@ -514,15 +513,15 @@ void RcsPredictor::calculateOutnormal() {
 }
 
 void RcsPredictor::calculateOrientation() {
-	float3 outDirSph = params.observer_pos;
+	float2 outDirSph = params.observer_pos;
 	float3 dirN = make_float3(0);  // ray direction
 	float3 dirU = make_float3(0);
 	float3 dirR = make_float3(0);
 
-	float cp = cosf(outDirSph.y);
-	float sp = sinf(outDirSph.y);
-	float ct = cosf(outDirSph.z);
-	float st = sinf(outDirSph.z);
+	float cp = cosf(outDirSph.x);
+	float sp = sinf(outDirSph.x);
+	float ct = cosf(outDirSph.y);
+	float st = sinf(outDirSph.y);
 
 	dirN.x = st * cp;
 	dirN.y = st * sp;
@@ -576,11 +575,15 @@ void RcsPredictor::calculateOrientation() {
 
 void RcsPredictor::init(const string& obj_filename, int rays_per_lamada,
 	double freq) {
-	this->freq = freq;
 	this->rays_per_lamada = rays_per_lamada;
 	float waveLen = c / freq;
 	float waveNum = 2 * M_PIf / waveLen;
+
+
 	params.waveNum = waveNum;
+
+
+
 	aabb = ReadObjMesh(obj_filename, vertices, mesh_indices);
 
 	min_mesh = make_float3(aabb.minX, aabb.minY, aabb.minZ);
@@ -595,6 +598,14 @@ void RcsPredictor::init(const string& obj_filename, int rays_per_lamada,
 	if (is_debug) {
 		cout << "using " << rays_dimension << " rays perdimension" << endl;
 	}
+
+	float rayRadius = radius / rays_dimension;
+	float rayDiameter = rayRadius * 2;
+
+	float rayArea = rayDiameter * rayDiameter;
+
+	float t_value = (waveNum * rayArea) / (4.0f * M_PIf);
+	params.t_value = t_value;
 	initOptix();
 	calculateOrientation();
 	calculateOutnormal();
@@ -841,7 +852,7 @@ void RcsPredictor::initOptix() {
 		cudaMemcpyHostToDevice));
 	CUDA_SYNC_CHECK();
 
-	params.rays_per_dimension = rays_dimension;
+	//params.rays_per_dimension = rays_dimension;
 	params.handle = ias.handle;
 	params.type = VV;
 
@@ -852,7 +863,7 @@ void RcsPredictor::initOptix() {
 
 double RcsPredictor::CalculateRcs(double phi, double theta) {
 	// phi theta in radian
-	float3 observer_pos = make_float3(radius, phi, theta);
+	float2 observer_pos = make_float2(phi, theta);
 
 	//
 	// launch

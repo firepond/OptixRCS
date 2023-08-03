@@ -120,13 +120,8 @@ extern "C" __global__ void __miss__ms() {
 
 	float waveNum = params.waveNum;
 
-	float rayRadius = params.observer_pos.x / params.rays_per_dimension;
-	float rayDiameter = rayRadius * 2;
-
-	float rayArea = rayDiameter * rayDiameter;
-
-	float phi = params.observer_pos.y;
-	float the = params.observer_pos.z;
+	float phi = params.observer_pos.x;
+	float the = params.observer_pos.y;
 
 	float cp = cosf(phi);
 	float sp = sinf(phi);
@@ -146,7 +141,7 @@ extern "C" __global__ void __miss__ms() {
 
 	complex<float> AR = 0;
 	complex<float> i = complex<float>(0.0f, 1.0f);
-
+	float t_value = params.t_value;
 	if (pldptr->refCount > 0) {
 		float kr = waveNum * pldptr->tpath;
 
@@ -163,11 +158,9 @@ extern "C" __global__ void __miss__ms() {
 		complex<float> BR =
 			dot(-(cross(apE, dirT) + cross(apH, dirP)), ray_direction);
 
-		float t = (waveNum * rayArea) / (4.0f * M_PIf);
-
 		complex<float> e = exp(-i * dot(vecK, ray_ori));
 
-		complex<float> factor = complex<float>(0.0, t) * e;
+		complex<float> factor = complex<float>(0.0, t_value) * e;
 
 
 		AU = BU * factor;

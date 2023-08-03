@@ -20,9 +20,9 @@ struct Result {
 
 struct Params {
     Result* result;
-    unsigned int rays_per_dimension;
+    //unsigned int rays_per_dimension;
     // r, phi, theta
-    float3 observer_pos;
+    float2 observer_pos;
     //float3 box_center;
     float3 polarization;
 
@@ -34,6 +34,7 @@ struct Params {
 
     //float freq;
     float waveNum;
+    float t_value;
 
     PolarizationTypes type;
     OptixTraversableHandle handle;
