@@ -451,11 +451,12 @@ public:
 	RcsPredictor();
 
 	~RcsPredictor();
-
+	void calcualteOrientation();
 	void RcsPredictor::init(const string& obj_filename, int rays_per_lamada,
 		double freq);
 
 	double RcsPredictor::CalculateRcs(double phi, double theta);
+
 };
 
 RcsPredictor::RcsPredictor() {}
@@ -468,6 +469,9 @@ RcsPredictor::~RcsPredictor() {
 	CUDA_CHECK(cudaFree(reinterpret_cast<void*>(sbt.raygenRecord)));
 	CUDA_CHECK(cudaFree(reinterpret_cast<void*>(sbt.missRecordBase)));
 	CUDA_CHECK(cudaFree(reinterpret_cast<void*>(sbt.hitgroupRecordBase)));
+	CUDA_CHECK(cudaFree(reinterpret_cast<void*>(device_ptr)));
+
+	free(results);
 	OPTIX_CHECK(optixPipelineDestroy(pipeline));
 	OPTIX_CHECK(optixProgramGroupDestroy(hitgroup_prog_group_triangle));
 	OPTIX_CHECK(optixProgramGroupDestroy(miss_prog_group));
@@ -476,6 +480,55 @@ RcsPredictor::~RcsPredictor() {
 	OPTIX_CHECK(optixModuleDestroy(module));
 
 	OPTIX_CHECK(optixDeviceContextDestroy(context));
+}
+
+void RcsPredictor::calcualteOrientation() {
+	float3 outDirSph = params.observer_pos;
+	float3 dirN = make_float3(0);  // ray direction
+	float3 dirU = make_float3(0);
+	float3 dirR = make_float3(0);
+
+	float cp = cosf(outDirSph.y);
+	float sp = sinf(outDirSph.y);
+	float ct = cosf(outDirSph.z);
+	float st = sinf(outDirSph.z);
+
+	dirN.x = st * cp;
+	dirN.y = st * sp;
+	dirN.z = ct;
+
+	dirR.x = sp;
+	dirR.y = -cp;
+	dirR.z = 0;
+
+	dirU = cross(dirR, dirN);
+
+	dirN = normalize(dirN);
+	dirU = normalize(dirU);
+	dirR = normalize(dirR);
+
+	dirU = normalize(dirU - dot(dirU, dirN) * dirN);
+
+	dirR = normalize(dirR - dot(dirR, dirN) * dirN);
+	dirR = normalize(dirR - dot(dirR, dirU) * dirU);
+
+	float3 boundBoxCenter = center;
+	float boundBoxRadius = outDirSph.x;
+	float3 rayPoolCenter = boundBoxCenter + dirN * 2.0 * boundBoxRadius;
+	float3 rayPoolRectMin = rayPoolCenter - (dirR + dirU) * boundBoxRadius;
+	float3 rayPoolRectMax = rayPoolCenter + (dirR + dirU) * boundBoxRadius;
+
+	int rayCountSqrt = rays_dimension;
+
+	float rayTubeRadius = boundBoxRadius / rayCountSqrt;
+	float rayTubeDiameter = rayTubeRadius * 2.0f;
+	float3 rayPosStepU = rayTubeDiameter * dirU;
+	float3 rayPosStepR = rayTubeDiameter * dirR;
+	float3 rayPosBegin = rayPoolRectMin + (rayPosStepU + rayPosStepR) / 2.0f;
+	params.rayPosBegin = rayPosBegin;
+	params.rayPosStepR = rayPosStepR;
+	params.rayPosStepU = rayPosStepU;
+	params.dirN = dirN;
 }
 
 void RcsPredictor::init(const string& obj_filename, int rays_per_lamada,
@@ -739,9 +792,9 @@ void RcsPredictor::initOptix() {
 	results = (Result*)malloc(sizeof(Result) * size);
 
 	// allocate gpu memory to gpu pointer
-	CUDA_CHECK(cudaMalloc((void**)&device_ptr, sizeof(Result)* size));
+	CUDA_CHECK(cudaMalloc((void**)&device_ptr, sizeof(Result) * size));
 	// copy data from host to device
-	CUDA_CHECK(cudaMemcpy(device_ptr, results, sizeof(Result)* size,
+	CUDA_CHECK(cudaMemcpy(device_ptr, results, sizeof(Result) * size,
 		cudaMemcpyHostToDevice));
 	CUDA_SYNC_CHECK();
 
@@ -765,7 +818,7 @@ double RcsPredictor::CalculateRcs(double phi, double theta) {
 	//
 
 	params.observer_pos = observer_pos;
-
+	calcualteOrientation();
 
 	auto optix_start = high_resolution_clock::now();
 
@@ -824,9 +877,6 @@ double RcsPredictor::CalculateRcs(double phi, double theta) {
 	}
 
 	CUDA_CHECK(cudaFree(reinterpret_cast<void*>(d_param)));
-	//CUDA_CHECK(cudaFree(reinterpret_cast<void*>(device_ptr)));
-
-	//free(results);
 	return rcs_ori;
 }
 

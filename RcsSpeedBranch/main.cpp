@@ -43,7 +43,7 @@ int main(int argc, char* argv[]) {
     // double c = 299792458.0;
     // int rays_per_dimension = 3000;
     //  3Ghz
-    double freq = 3E9;
+    double freq = 15E9;
 
     // start and end included
     double phi_start = 0;

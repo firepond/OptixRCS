@@ -11,7 +11,6 @@
 enum PolarizationTypes { HH,VV };
 
 struct Result {
-    //unsigned int rid;
     float au_real;
     float au_img;
     float ar_real;
@@ -25,6 +24,13 @@ struct Params {
     // r, phi, theta
     float3 observer_pos;
     float3 box_center;
+
+    float3 dirN;
+
+    float3 rayPosStepU;
+    float3 rayPosStepR;
+    float3 rayPosBegin;
+
     float freq;
     PolarizationTypes type;
     OptixTraversableHandle handle;

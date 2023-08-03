@@ -75,57 +75,6 @@ static __forceinline__ __device__ float3 sphericalToCartesian(float3 point) {
 	return res;
 }
 
-static __forceinline__ __device__ void computeRay(uint3 idx, uint3 dim,
-	float3& origin,
-	float3& direction) {
-	float3 outDirSph = params.observer_pos;
-	float3 dirN = make_float3(0);  // ray direction
-	float3 dirU = make_float3(0);
-	float3 dirR = make_float3(0);
-
-	float cp = cosf(outDirSph.y);
-	float sp = sinf(outDirSph.y);
-	float ct = cosf(outDirSph.z);
-	float st = sinf(outDirSph.z);
-
-	dirN.x = st * cp;
-	dirN.y = st * sp;
-	dirN.z = ct;
-
-	dirR.x = sp;
-	dirR.y = -cp;
-	dirR.z = 0;
-
-	dirU = cross(dirR, dirN);
-
-	dirN = normalize(dirN);
-	dirU = normalize(dirU);
-	dirR = normalize(dirR);
-
-	dirU = normalize(dirU - dot(dirU, dirN) * dirN);
-
-	dirR = normalize(dirR - dot(dirR, dirN) * dirN);
-	dirR = normalize(dirR - dot(dirR, dirU) * dirU);
-
-	float3 boundBoxCenter = params.box_center;
-	float boundBoxRadius = outDirSph.x;
-	float3 rayPoolCenter = boundBoxCenter + dirN * 2.0 * boundBoxRadius;
-	float3 rayPoolRectMin = rayPoolCenter - (dirR + dirU) * boundBoxRadius;
-	float3 rayPoolRectMax = rayPoolCenter + (dirR + dirU) * boundBoxRadius;
-
-	int rayCountSqrt = params.rays_per_dimension;
-
-	float rayTubeRadius = boundBoxRadius / rayCountSqrt;
-	float rayTubeDiameter = rayTubeRadius * 2.0f;
-	float3 rayPosStepU = rayTubeDiameter * dirU;
-	float3 rayPosStepR = rayTubeDiameter * dirR;
-	float3 rayPosBegin = rayPoolRectMin + (rayPosStepU + rayPosStepR) / 2.0f;
-	int idR = idx.x;
-	int idU = idx.y;
-	int idRay = idR + rayCountSqrt * idU;
-	origin = rayPosBegin + rayPosStepU * idU + rayPosStepR * idR;
-	direction = -dirN;
-}
 
 // TODO: to improve performance, pre-compute and pack the normals.
 __device__ __forceinline__ float3 getnormal(const unsigned int triId) {
@@ -144,8 +93,11 @@ extern "C" __global__ void __raygen__rg() {
 
 	float3 ray_origin;
 	float3 ray_direction;
+	int idR = idx.x;
+	int idU = idx.y;
 
-	computeRay(idx, dim, ray_origin, ray_direction);
+	ray_origin = params.rayPosBegin + params.rayPosStepU * idU + params.rayPosStepR * idR;
+	ray_direction = -params.dirN;
 
 	Payload pld;
 
