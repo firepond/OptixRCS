@@ -422,6 +422,7 @@ private:
 
 	int rays_dimension;
 	int rays_per_lamada;
+	int size;
 
 	OptixDeviceContext context = nullptr;
 	OptixPipeline pipeline = nullptr;
@@ -485,6 +486,7 @@ void RcsPredictor::init(const string& obj_filename, int rays_per_lamada,
 	lamada = c / freq;
 	lamda_nums = radius * 2 / lamada;
 	rays_dimension = ceil(lamda_nums * rays_per_lamada + 1.0f) + 1;
+	size = rays_dimension * rays_dimension;
 	if (is_debug) {
 		cout << "using " << rays_dimension << " rays perdimension" << endl;
 	}
@@ -746,7 +748,7 @@ double RcsPredictor::CalculateRcs(double phi, double theta) {
 	params.freq = freq;
 	params.type = VV;
 
-	int size = rays_dimension * rays_dimension;
+
 
 	Result* results = (Result*)malloc(sizeof(Result) * size);
 
@@ -817,9 +819,6 @@ double RcsPredictor::CalculateRcs(double phi, double theta) {
 		cout << "au : " << au << endl;
 		cout << "ar : " << ar << endl;
 	}
-
-	dim3 blocksize(size);  // create 1D threadblock
-	dim3 gridsize(1);      // create 1D grid
 
 	// reduce << <gridsize, blocksize >> > (device_ptr);
 	CUDA_CHECK(cudaFree(reinterpret_cast<void*>(d_param)));
