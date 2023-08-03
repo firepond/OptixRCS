@@ -424,6 +424,9 @@ private:
 	int rays_per_lamada;
 	int size;
 
+	float3* out_normals;
+	float3* out_normal_device;
+
 	Result* results;
 	Result* device_ptr;
 
@@ -452,7 +455,8 @@ public:
 	RcsPredictor();
 
 	~RcsPredictor();
-	void calcualteOrientation();
+	void calculateOrientation();
+	void calculateOutnormal();
 	void RcsPredictor::init(const string& obj_filename, int rays_per_lamada,
 		double freq);
 
@@ -470,9 +474,10 @@ RcsPredictor::~RcsPredictor() {
 	CUDA_CHECK(cudaFree(reinterpret_cast<void*>(sbt.raygenRecord)));
 	CUDA_CHECK(cudaFree(reinterpret_cast<void*>(sbt.missRecordBase)));
 	CUDA_CHECK(cudaFree(reinterpret_cast<void*>(sbt.hitgroupRecordBase)));
-	CUDA_CHECK(cudaFree(reinterpret_cast<void*>(device_ptr)));
 
-	free(results);
+	CUDA_CHECK(cudaFree(reinterpret_cast<void*>(device_ptr)));
+	CUDA_CHECK(cudaFree(reinterpret_cast<void*>(out_normal_device)));
+
 	OPTIX_CHECK(optixPipelineDestroy(pipeline));
 	OPTIX_CHECK(optixProgramGroupDestroy(hitgroup_prog_group_triangle));
 	OPTIX_CHECK(optixProgramGroupDestroy(miss_prog_group));
@@ -481,9 +486,33 @@ RcsPredictor::~RcsPredictor() {
 	OPTIX_CHECK(optixModuleDestroy(module));
 
 	OPTIX_CHECK(optixDeviceContextDestroy(context));
+
+	free(results);
+	free(out_normals);
 }
 
-void RcsPredictor::calcualteOrientation() {
+void RcsPredictor::calculateOutnormal() {
+	int triangle_num = mesh_indices.size();
+	out_normals = (float3*)malloc(sizeof(float3) * triangle_num);
+	for (int i = 0; i < triangle_num; i++) {
+		uint3 index = mesh_indices[i];
+
+		float3 v0 = vertices[index.x];
+		float3 v1 = vertices[index.y];
+		float3 v2 = vertices[index.z];
+		float3 out_normal = normalize(cross((v1 - v0), (v2 - v0)));
+		out_normals[i] = out_normal;
+	}
+	// allocate gpu memory to gpu pointer
+	CUDA_CHECK(cudaMalloc((void**)&out_normal_device, sizeof(float3) * triangle_num));
+	// copy data from host to device
+	CUDA_CHECK(cudaMemcpy(out_normal_device, out_normals, sizeof(float3) * triangle_num,
+		cudaMemcpyHostToDevice));
+	CUDA_SYNC_CHECK();
+	params.out_normals = out_normal_device;
+}
+
+void RcsPredictor::calculateOrientation() {
 	float3 outDirSph = params.observer_pos;
 	float3 dirN = make_float3(0);  // ray direction
 	float3 dirU = make_float3(0);
@@ -563,6 +592,9 @@ void RcsPredictor::init(const string& obj_filename, int rays_per_lamada,
 		cout << "using " << rays_dimension << " rays perdimension" << endl;
 	}
 	initOptix();
+	calculateOrientation();
+	calculateOutnormal();
+
 }
 
 void RcsPredictor::initOptix() {
@@ -831,7 +863,7 @@ double RcsPredictor::CalculateRcs(double phi, double theta) {
 	//
 
 	params.observer_pos = observer_pos;
-	calcualteOrientation();
+	calculateOrientation();
 
 	auto optix_start = high_resolution_clock::now();
 

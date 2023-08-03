@@ -27,7 +27,7 @@ struct Params {
     float3 polarization;
 
     float3 dirN;
-
+    float3* out_normals;
     float3 rayPosStepU;
     float3 rayPosStepR;
     float3 rayPosBegin;

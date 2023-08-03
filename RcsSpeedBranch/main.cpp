@@ -34,7 +34,7 @@ using std::to_string;
 int main(int argc, char* argv[]) {
     auto sum_start = high_resolution_clock::now();
 
-    string test_model = "corner_reflector";
+    string test_model = "x35";
     // string test_model = "d_reflector";
     // string test_model = "large_trihedral_reflector";
 
@@ -43,7 +43,7 @@ int main(int argc, char* argv[]) {
     // double c = 299792458.0;
     // int rays_per_dimension = 3000;
     //  3Ghz
-    double freq = 15E9;
+    double freq = 1.5E9;
 
     // start and end included
     double phi_start = 0;
@@ -93,14 +93,14 @@ int main(int argc, char* argv[]) {
     int phi_count = ceil((phi_end - phi_start) / phi_interval) + 1;
     int theta_count = ceil((theta_end - theta_start) / theta_interval) + 1;
 
-    int rays_per_lamada = 100;
+    int rays_per_lamada = 10;
     cout << "Phi: [" << phi_start << ":" << phi_end << ":" << phi_count << "]"
          << endl;
     cout << "Theta: [" << theta_start << ":" << theta_end << ":" << theta_count
          << "]" << endl;
 
     RcsPredictor predicitor;
-    predicitor.is_debug = false;
+    predicitor.is_debug = true;
     predicitor.init(obj_file, rays_per_lamada, freq);
 
     // [0, (phi_count-1)]

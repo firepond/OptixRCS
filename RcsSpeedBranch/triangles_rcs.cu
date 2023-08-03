@@ -65,16 +65,6 @@ static __forceinline__ __device__ Payload* getPayload() {
 	return prd;
 }
 
-// (r, phi, theta) to (x, y, z) theta os the angle between z and x-y plane
-static __forceinline__ __device__ float3 sphericalToCartesian(float3 point) {
-	float r = point.x;
-	float phi = point.y;
-	float theta = point.z;
-	float3 res = make_float3(r * sinf(theta) * cosf(phi),
-		r * sinf(theta) * sinf(phi), r * cosf(theta));
-	return res;
-}
-
 
 // TODO: to improve performance, pre-compute and pack the normals.
 __device__ __forceinline__ float3 getnormal(const unsigned int triId) {
@@ -91,30 +81,20 @@ extern "C" __global__ void __raygen__rg() {
 	const uint3 idx = optixGetLaunchIndex();
 	const uint3 dim = optixGetLaunchDimensions();
 
-	float3 ray_origin;
-	float3 ray_direction;
+	float3 origin;
+	float3 direction;
 	int idR = idx.x;
 	int idU = idx.y;
 
-	ray_origin = params.rayPosBegin + params.rayPosStepU * idU + params.rayPosStepR * idR;
-	ray_direction = -params.dirN;
+	origin = params.rayPosBegin + params.rayPosStepU * idU + params.rayPosStepR * idR;
+	direction = -params.dirN;
 
 	Payload pld;
 
-	float phi = params.observer_pos.y;
-	float theta = params.observer_pos.z;
-
 	pld.polarization = params.polarization;
-
-
-
 	pld.tpath = 0.0f;
 	pld.ray_id = idx.x + dim.x * idx.y;
 	pld.refCount = 0;
-	//if (pld.ray_id == 0) {
-	//	printf("vec1[0]: %d, vec1[1]: %d\n", params.vec_ptr[0], params.vec_ptr[1]);
-	//}
-	//params.result[pld.ray_id].rid = pld.ray_id;
 
 	Payload* pldptr = &pld;
 
@@ -125,7 +105,7 @@ extern "C" __global__ void __raygen__rg() {
 	result->au_real = 0.0f;
 	result->refCount = 0;
 
-	trace(params.handle, ray_origin, ray_direction, pldptr, 0, 1,
+	trace(params.handle, origin, direction, pldptr, 0, 1,
 		0);
 }
 
@@ -222,14 +202,7 @@ extern "C" __global__ void __closesthit__triangle() {
 
 	Payload* pldptr = getPayload();
 
-	HitGroupData* data = (HitGroupData*)optixGetSbtDataPointer();
-	const MeshData* mesh_data = (MeshData*)data->shape_data;
-	const uint3 index = mesh_data->indices[tri_id];
-
-	const float3 v0 = mesh_data->vertices[index.x];
-	const float3 v1 = mesh_data->vertices[index.y];
-	const float3 v2 = mesh_data->vertices[index.z];
-	const float3 out_normal = normalize(cross((v1 - v0), (v2 - v0)));
+	float3 out_normal = params.out_normals[tri_id];
 
 	float3 hit_point = ray_ori + ray_tmax * ray_dir;
 	float3 reflect_dir = reflect(ray_dir, out_normal);
