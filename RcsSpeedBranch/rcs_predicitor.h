@@ -436,6 +436,8 @@ private:
 	InstanceAccelData ias;
 	std::vector<std::pair<ShapeType, HitGroupData>> hitgroup_datas;
 
+	CUstream stream;
+
 	void initOptix();
 
 public:
@@ -726,6 +728,8 @@ void RcsPredictor::initOptix() {
 			static_cast<uint32_t>(sizeof(HitGroupSbtRecord));
 		sbt.hitgroupRecordCount = static_cast<uint32_t>(hitgroup_datas.size());
 	}
+	/*CUstream stream;*/
+	CUDA_CHECK(cudaStreamCreate(&stream));
 }
 
 double RcsPredictor::CalculateRcs(double phi, double theta) {
@@ -735,8 +739,7 @@ double RcsPredictor::CalculateRcs(double phi, double theta) {
 	//
 	// launch
 	//
-	CUstream stream;
-	CUDA_CHECK(cudaStreamCreate(&stream));
+
 
 	Params params;
 
