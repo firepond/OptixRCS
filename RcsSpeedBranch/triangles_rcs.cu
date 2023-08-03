@@ -104,15 +104,8 @@ extern "C" __global__ void __raygen__rg() {
 	float phi = params.observer_pos.y;
 	float theta = params.observer_pos.z;
 
-	if (params.type == HH) {
-		pld.polarization = make_float3(-sinf(phi), cosf(phi), 0.0f);
-	}
-	else if (params.type == VV) {
-		pld.polarization = make_float3(cosf(phi) * cosf(theta), sinf(phi) * cosf(theta), -sinf(theta));
-	}
-	else {
-		pld.polarization = make_float3(-sinf(phi), cosf(phi), 0.0f);
-	}
+	pld.polarization = params.polarization;
+
 
 
 	pld.tpath = 0.0f;

@@ -413,6 +413,7 @@ private:
 	float3 min_mesh;
 	float3 max_mesh;
 	float3 center;
+	float3 polarization;
 
 	double radius;
 	double freq;
@@ -529,6 +530,18 @@ void RcsPredictor::calcualteOrientation() {
 	params.rayPosStepR = rayPosStepR;
 	params.rayPosStepU = rayPosStepU;
 	params.dirN = dirN;
+
+	if (params.type == HH) {
+		polarization = make_float3(-sp, cp, 0.0f);
+	}
+	else if (params.type == VV) {
+		polarization = make_float3(cp * ct, sp * ct, -st);
+	}
+	else {
+		polarization = make_float3(-sp, cp, 0.0f);
+	}
+	params.polarization = polarization;
+
 }
 
 void RcsPredictor::init(const string& obj_filename, int rays_per_lamada,
@@ -800,7 +813,7 @@ void RcsPredictor::initOptix() {
 
 	params.rays_per_dimension = rays_dimension;
 	params.handle = ias.handle;
-	params.box_center = center;
+	//params.box_center = center;
 	params.freq = freq;
 	params.type = VV;
 

@@ -23,7 +23,8 @@ struct Params {
     unsigned int rays_per_dimension;
     // r, phi, theta
     float3 observer_pos;
-    float3 box_center;
+    //float3 box_center;
+    float3 polarization;
 
     float3 dirN;
 
