@@ -558,7 +558,7 @@ void RcsPredictor::calculateOrientation() {
 	params.rayPosBegin = rayPosBegin;
 	params.rayPosStepR = rayPosStepR;
 	params.rayPosStepU = rayPosStepU;
-	params.dirN = dirN;
+	params.rayDir = -dirN;
 
 	if (params.type == HH) {
 		polarization = make_float3(-sp, cp, 0.0f);
@@ -665,7 +665,6 @@ void RcsPredictor::initOptix() {
 	//
 	// Create module
 	//
-	//	OptixModule module = nullptr;
 
 	OptixModuleCompileOptions module_compile_options = {};
 	module_compile_options.maxRegisterCount =
@@ -699,13 +698,10 @@ void RcsPredictor::initOptix() {
 	//
 	// Create program groups
 	//
-	// OptixProgramGroup raygen_prog_group = nullptr;
-	// OptixProgramGroup miss_prog_group = nullptr;
-	// OptixProgramGroup hitgroup_prog_group_triangle = nullptr;
-	// OptixProgramGroup hitgroup_prog_group_sphere = nullptr;
+
 	{
-		OptixProgramGroupOptions program_group_options =
-		{};  // Initialize to zeros
+		// Initialize to zeros
+		OptixProgramGroupOptions program_group_options = {};
 
 		OptixProgramGroupDesc raygen_prog_group_desc = {};  //
 		raygen_prog_group_desc.kind = OPTIX_PROGRAM_GROUP_KIND_RAYGEN;

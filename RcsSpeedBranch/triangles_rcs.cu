@@ -87,7 +87,7 @@ extern "C" __global__ void __raygen__rg() {
 	int idU = idx.y;
 
 	origin = params.rayPosBegin + params.rayPosStepU * idU + params.rayPosStepR * idR;
-	direction = -params.dirN;
+	direction = params.rayDir;
 
 	Payload pld;
 
