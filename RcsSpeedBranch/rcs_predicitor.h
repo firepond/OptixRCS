@@ -423,6 +423,10 @@ private:
 	int rays_per_lamada;
 	int size;
 
+	Result* results;
+
+	Result* device_ptr;
+
 	OptixDeviceContext context = nullptr;
 	OptixPipeline pipeline = nullptr;
 	OptixModule module = nullptr;
@@ -730,6 +734,16 @@ void RcsPredictor::initOptix() {
 	}
 	/*CUstream stream;*/
 	CUDA_CHECK(cudaStreamCreate(&stream));
+
+	results = (Result*)malloc(sizeof(Result) * size);
+
+	// allocate gpu memory to gpu pointer
+	CUDA_CHECK(cudaMalloc((void**)&device_ptr, sizeof(Result)* size));
+	// copy data from host to device
+	CUDA_CHECK(cudaMemcpy(device_ptr, results, sizeof(Result)* size,
+		cudaMemcpyHostToDevice));
+	CUDA_SYNC_CHECK();
+
 }
 
 double RcsPredictor::CalculateRcs(double phi, double theta) {
@@ -740,9 +754,7 @@ double RcsPredictor::CalculateRcs(double phi, double theta) {
 	// launch
 	//
 
-
 	Params params;
-
 	params.rays_per_dimension = rays_dimension;
 	params.handle = ias.handle;
 	params.observer_pos = observer_pos;
@@ -750,21 +762,8 @@ double RcsPredictor::CalculateRcs(double phi, double theta) {
 	params.freq = freq;
 	params.type = VV;
 
-
-
-	Result* results = (Result*)malloc(sizeof(Result) * size);
-
-	Result* device_ptr;
-
-	// allocate gpu memory to gpu pointer
-	CUDA_CHECK(cudaMalloc((void**)&device_ptr, sizeof(Result) * size));
-
-	// copy data from host to device
-	CUDA_CHECK(cudaMemcpy(device_ptr, results, sizeof(Result) * size,
-		cudaMemcpyHostToDevice));
 	params.result = device_ptr;
 
-	CUDA_SYNC_CHECK();
 
 	auto optix_start = high_resolution_clock::now();
 
@@ -823,9 +822,9 @@ double RcsPredictor::CalculateRcs(double phi, double theta) {
 	}
 
 	CUDA_CHECK(cudaFree(reinterpret_cast<void*>(d_param)));
-	CUDA_CHECK(cudaFree(reinterpret_cast<void*>(device_ptr)));
+	//CUDA_CHECK(cudaFree(reinterpret_cast<void*>(device_ptr)));
 
-	free(results);
+	//free(results);
 	return rcs_ori;
 }
 

@@ -173,6 +173,13 @@ extern "C" __global__ void __raygen__rg() {
 
 	Payload* pldptr = &pld;
 
+	Result* result = params.result;
+	result->ar_img = 0.0f;
+	result->ar_real = 0.0f;
+	result->au_img = 0.0f;
+	result->au_real = 0.0f;
+	result->refCount = 0;
+
 	trace(params.handle, ray_origin, ray_direction, pldptr, 0, 1,
 		0);
 }
