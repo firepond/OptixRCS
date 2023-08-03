@@ -66,7 +66,7 @@ static __forceinline__ __device__ Payload* getPayload() {
 }
 
 
-// TODO: to improve performance, pre-compute and pack the normals.
+
 __device__ __forceinline__ float3 getnormal(const unsigned int triId) {
 	float3 vertex[3];
 	OptixTraversableHandle gas_handle = optixGetGASTraversableHandle();
@@ -118,12 +118,7 @@ extern "C" __global__ void __miss__ms() {
 
 	int ray_id = pldptr->ray_id;
 
-	float c0 = 299792458.0f;
-	float freq = params.freq;
-
-	float angFreq = 2 * M_PIf * freq;
-	float waveLen = c0 / freq;
-	float waveNum = 2 * M_PIf / waveLen;
+	float waveNum = params.waveNum;
 
 	float rayRadius = params.observer_pos.x / params.rays_per_dimension;
 	float rayDiameter = rayRadius * 2;
@@ -207,30 +202,30 @@ extern "C" __global__ void __closesthit__triangle() {
 	float3 hit_point = ray_ori + ray_tmax * ray_dir;
 	float3 reflect_dir = reflect(ray_dir, out_normal);
 
-	{
-		float3 pol = pldptr->polarization;
 
-		float3 hitNormal = out_normal;
-		float3 dirCrossNormal = cross(ray_dir, hitNormal);
+	float3 pol = pldptr->polarization;
 
-		float3 polU = normalize(dirCrossNormal);
-		float3 polR = normalize(cross(ray_dir, polU));
+	float3 hitNormal = out_normal;
+	float3 dirCrossNormal = cross(ray_dir, hitNormal);
 
-		float3 refDir = reflect_dir;
+	float3 polU = normalize(dirCrossNormal);
+	float3 polR = normalize(cross(ray_dir, polU));
 
-		float3 refPolU = -polU;
-		float3 refPolR = cross(refDir, refPolU);
+	float3 refDir = reflect_dir;
 
-		float polCompU = dot(pol, polU);
-		float polCompR = dot(pol, polR);
+	float3 refPolU = -polU;
+	float3 refPolR = cross(refDir, refPolU);
 
-		float total_path_length = ray_tmax + pldptr->tpath;
-		pldptr->tpath = total_path_length;
-		pldptr->polarization = -polCompR * refPolR + polCompU * refPolU;
+	float polCompU = dot(pol, polU);
+	float polCompR = dot(pol, polR);
 
-		pldptr->refNormal = out_normal;
-		pldptr->refCount += 1;
-	}
+	float total_path_length = ray_tmax + pldptr->tpath;
+	pldptr->tpath = total_path_length;
+	pldptr->polarization = -polCompR * refPolR + polCompU * refPolU;
+
+	pldptr->refNormal = out_normal;
+	pldptr->refCount += 1;
+
 
 	trace(params.handle, hit_point, reflect_dir, pldptr, 0, 1, 0);
 }

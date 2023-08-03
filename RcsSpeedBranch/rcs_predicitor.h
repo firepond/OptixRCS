@@ -419,6 +419,7 @@ private:
 	double freq;
 	double lamada;
 	double lamda_nums;
+	float waveNum;
 
 	int rays_dimension;
 	int rays_per_lamada;
@@ -577,6 +578,9 @@ void RcsPredictor::init(const string& obj_filename, int rays_per_lamada,
 	double freq) {
 	this->freq = freq;
 	this->rays_per_lamada = rays_per_lamada;
+	float waveLen = c / freq;
+	float waveNum = 2 * M_PIf / waveLen;
+	params.waveNum = waveNum;
 	aabb = ReadObjMesh(obj_filename, vertices, mesh_indices);
 
 	min_mesh = make_float3(aabb.minX, aabb.minY, aabb.minZ);
@@ -739,7 +743,6 @@ void RcsPredictor::initOptix() {
 	//
 	// Link pipeline
 	//
-	// OptixPipeline pipeline = nullptr;
 	{
 		OptixProgramGroup program_groups[] = {
 			raygen_prog_group, miss_prog_group, hitgroup_prog_group_triangle };
@@ -778,7 +781,6 @@ void RcsPredictor::initOptix() {
 	//
 	// Set up shader binding table
 	//
-	// OptixShaderBindingTable sbt = {};
 	{
 		CUdeviceptr raygen_record;
 		const size_t raygen_record_size = sizeof(RayGenSbtRecord);
@@ -841,8 +843,6 @@ void RcsPredictor::initOptix() {
 
 	params.rays_per_dimension = rays_dimension;
 	params.handle = ias.handle;
-	//params.box_center = center;
-	params.freq = freq;
 	params.type = VV;
 
 	params.result = device_ptr;

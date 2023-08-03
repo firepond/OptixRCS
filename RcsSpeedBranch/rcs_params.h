@@ -32,7 +32,9 @@ struct Params {
     float3 rayPosStepR;
     float3 rayPosBegin;
 
-    float freq;
+    //float freq;
+    float waveNum;
+
     PolarizationTypes type;
     OptixTraversableHandle handle;
 };
