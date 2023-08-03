@@ -13,7 +13,7 @@
 #include <chrono>
 #include <iostream>
 
-#include "rcs_params.h"
+#include "RcsSpeedBranch/rcs_params.h"
 
 #ifndef TINYOBJLOADER_IMPLEMENTATION
 #define TINYOBJLOADER_IMPLEMENTATION
@@ -749,25 +749,23 @@ void RcsPredictor::initOptix() {
 
 }
 
+
 double RcsPredictor::CalculateRcs(double phi, double theta) {
 	// phi theta in radian
 	float3 observer_pos = make_float3(radius, phi, theta);
-	//CUDA_CHECK(cudaFree(0));
 
 
 
-
-	sutil::CUDAOutputBuffer<Result> result(
-		sutil::CUDAOutputBufferType::CUDA_DEVICE, rays_dimension,
-		rays_dimension);
 	//
 	// launch
 	//
 	CUstream stream;
 	CUDA_CHECK(cudaStreamCreate(&stream));
-	result.setStream(stream);
+
+
+
 	Params params;
-	params.result = result.map();
+
 	params.rays_per_dimension = rays_dimension;
 	params.handle = ias.handle;
 	params.observer_pos = observer_pos;
@@ -775,10 +773,25 @@ double RcsPredictor::CalculateRcs(double phi, double theta) {
 	params.freq = freq;
 	params.type = VV;
 
-	CUdeviceptr d_param;
+	int size = rays_dimension * rays_dimension;
+
+	Result* results = (Result*)malloc(sizeof(Result) * size);
+
+	Result* device_ptr;
+
+	//allocate gpu memory to gpu pointer
+	CUDA_CHECK(cudaMalloc((void**)&device_ptr, sizeof(Result) * size));
+
+	//copy data from host to device
+	CUDA_CHECK(cudaMemcpy(device_ptr, results, sizeof(Result) * size, cudaMemcpyHostToDevice));
+	params.result = device_ptr;
+
+	CUDA_SYNC_CHECK();
 
 	auto optix_start = high_resolution_clock::now();
 
+
+	CUdeviceptr d_param;
 	CUDA_CHECK(cudaMalloc(reinterpret_cast<void**>(&d_param), sizeof(Params)));
 	CUDA_CHECK(cudaMemcpy(reinterpret_cast<void*>(d_param), &params,
 		sizeof(Params), cudaMemcpyHostToDevice));
@@ -791,18 +804,21 @@ double RcsPredictor::CalculateRcs(double phi, double theta) {
 	auto ms_int = duration_cast<milliseconds>(optix_end - optix_start);
 	std::cout << "optix time usage: " << ms_int.count() << "ms\n";
 
-	result.unmap();
-	Result* resultBuffer = result.getHostPointer();
+
+	CUDA_CHECK(cudaMemcpy( results, device_ptr, sizeof(Result) * size, cudaMemcpyDeviceToHost));
+	CUDA_SYNC_CHECK();
+
+
 	auto sum_start = high_resolution_clock::now();
-	complex<double> au = 0;
-	complex<double> ar = 0;
+	std::complex<double> au = 0;
+	std::complex<double> ar = 0;
 	int hit_count = 0;
 	for (int i = 0; i < rays_dimension * rays_dimension; i++) {
-		Result cur_result = resultBuffer[i];
+		Result cur_result = results[i];
 		if (cur_result.refCount > 0) {
 			hit_count++;
-			au += complex<double>(cur_result.au_real, cur_result.au_img);
-			ar += complex<double>(cur_result.ar_real, cur_result.ar_img);
+			au += std::complex<double>(cur_result.au_real, cur_result.au_img );
+			ar += std::complex<double>(cur_result.ar_real, cur_result.ar_img);
 		}
 	}
 
@@ -817,8 +833,9 @@ double RcsPredictor::CalculateRcs(double phi, double theta) {
 		cout << "au : " << au << endl;
 		cout << "ar : " << ar << endl;
 	}
+	CUDA_CHECK(cudaFree(reinterpret_cast<void*>(d_param)));
 
-
+	free(results);
 	return rcs_ori;
 }
 

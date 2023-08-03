@@ -21,16 +21,15 @@
 #include <string>
 #include <vector>
 
-#include "TrianglesRCS/reduce.cu"
-#include "rcs_params.h"
-#include "rcs_predicitor.h"
+#include "RcsSpeedBranch/rcs_params.h"
+#include "RcsSpeedBranch/rcs_predicitor.h"
 
 using std::chrono::duration;
 using std::chrono::duration_cast;
 using std::chrono::high_resolution_clock;
 using std::chrono::milliseconds;
 
-using std::complex;
+//using std::complex;
 using std::cout;
 using std::endl;
 using std::string;
@@ -53,7 +52,7 @@ int main(int argc, char* argv[]) {
     // start and end included
     double phi_start = 0;
     double phi_end = 90;
-    double phi_interval = 5;
+    double phi_interval = 45;
 
     double theta_start = 57;
     double theta_end = 57;

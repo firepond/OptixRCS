@@ -168,7 +168,9 @@ extern "C" __global__ void __raygen__rg() {
 	pld.tpath = 0.0f;
 	pld.ray_id = idx.x + dim.x * idx.y;
 	pld.refCount = 0;
-
+	//if (pld.ray_id == 0) {
+	//	printf("vec1[0]: %d, vec1[1]: %d\n", params.vec_ptr[0], params.vec_ptr[1]);
+	//}
 	params.result[pld.ray_id].rid = pld.ray_id;
 
 	Payload* pldptr = &pld;
@@ -256,6 +258,7 @@ extern "C" __global__ void __miss__ms() {
 	params.result[ray_id].au_img = AU.imag();
 	params.result[ray_id].ar_real = AR.real();
 	params.result[ray_id].ar_img = AR.imag();
+
 	params.result[ray_id].refCount = pldptr->refCount;
 }
 
