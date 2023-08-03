@@ -424,8 +424,9 @@ private:
 	int size;
 
 	Result* results;
-
 	Result* device_ptr;
+
+	Params params;
 
 	OptixDeviceContext context = nullptr;
 	OptixPipeline pipeline = nullptr;
@@ -744,6 +745,15 @@ void RcsPredictor::initOptix() {
 		cudaMemcpyHostToDevice));
 	CUDA_SYNC_CHECK();
 
+	params.rays_per_dimension = rays_dimension;
+	params.handle = ias.handle;
+	params.box_center = center;
+	params.freq = freq;
+	params.type = VV;
+
+	params.result = device_ptr;
+
+
 }
 
 double RcsPredictor::CalculateRcs(double phi, double theta) {
@@ -754,15 +764,7 @@ double RcsPredictor::CalculateRcs(double phi, double theta) {
 	// launch
 	//
 
-	Params params;
-	params.rays_per_dimension = rays_dimension;
-	params.handle = ias.handle;
 	params.observer_pos = observer_pos;
-	params.box_center = center;
-	params.freq = freq;
-	params.type = VV;
-
-	params.result = device_ptr;
 
 
 	auto optix_start = high_resolution_clock::now();
