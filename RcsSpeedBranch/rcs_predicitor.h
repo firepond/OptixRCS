@@ -394,9 +394,10 @@ private:
 	void initOptix();
 	void calculateOrientation();
 	void calculateOutnormal();
-
+	void moveModelToZero();
 public:
 	bool is_debug = false;
+	bool centerRelocate = false;
 
 	RcsPredictor();
 
@@ -439,6 +440,32 @@ RcsPredictor::~RcsPredictor() {
 	free(results);
 	free(out_normals);
 }
+
+// move model to the zero point to reduce rays
+void RcsPredictor::moveModelToZero() {
+	float x_offset = (aabb.maxX - aabb.minX) / 2;
+	float y_offset = (aabb.maxY - aabb.minY) / 2;
+	float z_offset = (aabb.maxZ - aabb.minZ) / 2;
+
+	int vertices_num = vertices.size();
+
+	#pragma omp parallel for
+	for (int i = 0; i < vertices_num; i++) {
+		vertices[i].x -= x_offset;
+		vertices[i].y -= y_offset;
+		vertices[i].z -= z_offset;
+	}
+
+	aabb.maxX -= x_offset;
+	aabb.minX -= x_offset;
+
+	aabb.maxY -= y_offset;
+	aabb.minY -= y_offset;
+
+	aabb.maxZ -= z_offset;
+	aabb.minZ -= z_offset;
+}
+
 
 
 
@@ -557,9 +584,13 @@ void RcsPredictor::init(const string& obj_filename, int rays_per_lamada,
 
 	float t_value = (waveNum * rayArea) / (4.0f * M_PIf);
 	params.t_value = t_value;
+
+	if (centerRelocate) {
+		moveModelToZero();
+	}
 	initOptix();
-	calculateOrientation();
 	calculateOutnormal();
+	//calculateOrientation();
 
 }
 
@@ -874,8 +905,9 @@ double RcsPredictor::CalculateRcs(double phi, double theta) {
 
 	auto sum_end = high_resolution_clock::now();
 	ms_int = duration_cast<milliseconds>(sum_end - sum_start);
+	std::cout << "rcs sum time usage: " << ms_int.count() << "ms\n";
+
 	if (is_debug) {
-		std::cout << "rcs sum time usage: " << ms_int.count() << "ms\n";
 		cout << "au : " << au << endl;
 		cout << "ar : " << ar << endl;
 	}
