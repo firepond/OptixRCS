@@ -21,7 +21,7 @@ struct Result {
 struct Params {
     Result* result;
     //unsigned int rays_per_dimension;
-    // r, phi, theta
+    // phi, theta
     float2 observer_pos;
     //float3 box_center;
     float3 polarization;
@@ -49,10 +49,10 @@ struct MissData {
     float3 bg_color;
 };
 
-struct SphereData {
-    float3 center;
-    float radius;
-};
+//struct SphereData {
+//    float3 center;
+//    float radius;
+//};
 
 struct MeshData {
     float3* vertices;
