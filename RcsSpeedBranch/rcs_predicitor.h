@@ -543,7 +543,7 @@ void RcsPredictor::calculateOrientation() {
 	dirR = normalize(dirR - dot(dirR, dirU) * dirU);
 
 	float3 boundBoxCenter = center;
-	float boundBoxRadius = outDirSph.x;
+	float boundBoxRadius = radius;
 	float3 rayPoolCenter = boundBoxCenter + dirN * 2.0 * boundBoxRadius;
 	float3 rayPoolRectMin = rayPoolCenter - (dirR + dirU) * boundBoxRadius;
 	float3 rayPoolRectMax = rayPoolCenter + (dirR + dirU) * boundBoxRadius;
