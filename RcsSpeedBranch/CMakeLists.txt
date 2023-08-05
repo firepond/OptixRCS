@@ -1,7 +1,4 @@
-set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/reduce.cu
-  PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ
-)
-set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/reduce_h.cu
+set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/reduceKernels.cu
   PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ
 )
 
@@ -15,22 +12,12 @@ OPTIX_add_sample_executable( RcsSpeedBranch target_name
   triangles_rcs.cu
   complex_vector.cu
 
-  # reduce.cu
-  # reduce_h.cu
+  reduceKernels.cu
+  reduceKernels.h
 
-  OPTIONS -rdc true
+  # OPTIONS -rdc true
   )
-
-set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/reduce.cu
-  PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ
-)
-set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/reduce_h.cu
-  PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ
-)
 
 target_link_libraries( ${target_name}
   ${CUDA_LIBRARIES}
-  ${CUDA_CUDART_LIBRARY}
-  CUDA::cudart
-  CUDA::cuda_driver
   )

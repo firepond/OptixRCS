@@ -371,7 +371,7 @@ private:
 	float3* out_normals;
 	float3* out_normal_device;
 
-	Result* results;
+	//Result* results;
 	Result* device_ptr;
 
 	Params params;
@@ -425,7 +425,7 @@ RcsPredictor::~RcsPredictor() {
 	CUDA_CHECK(cudaFree(reinterpret_cast<void*>(sbt.missRecordBase)));
 	CUDA_CHECK(cudaFree(reinterpret_cast<void*>(sbt.hitgroupRecordBase)));
 
-	CUDA_CHECK(cudaFree(reinterpret_cast<void*>(device_ptr)));
+	//CUDA_CHECK(cudaFree(reinterpret_cast<void*>(device_ptr)));
 	CUDA_CHECK(cudaFree(reinterpret_cast<void*>(out_normal_device)));
 
 	OPTIX_CHECK(optixPipelineDestroy(pipeline));
@@ -437,7 +437,7 @@ RcsPredictor::~RcsPredictor() {
 
 	OPTIX_CHECK(optixDeviceContextDestroy(context));
 
-	free(results);
+	//free(results);
 	free(out_normals);
 }
 
@@ -449,7 +449,7 @@ void RcsPredictor::moveModelToZero() {
 
 	int vertices_num = vertices.size();
 
-	#pragma omp parallel for
+#pragma omp parallel for
 	for (int i = 0; i < vertices_num; i++) {
 		vertices[i].x -= x_offset;
 		vertices[i].y -= y_offset;
@@ -825,14 +825,7 @@ void RcsPredictor::initOptix() {
 	/*CUstream stream;*/
 	CUDA_CHECK(cudaStreamCreate(&stream));
 
-	results = (Result*)malloc(sizeof(Result) * size);
-
-	// allocate gpu memory to gpu pointer
-	CUDA_CHECK(cudaMalloc((void**)&device_ptr, sizeof(Result) * size));
-	// copy data from host to device
-	CUDA_CHECK(cudaMemcpy(device_ptr, results, sizeof(Result) * size,
-		cudaMemcpyHostToDevice));
-	CUDA_SYNC_CHECK();
+	//results = (Result*)malloc(sizeof(Result) * size);
 
 	//params.rays_per_dimension = rays_dimension;
 	params.handle = ias.handle;
@@ -857,6 +850,15 @@ double RcsPredictor::CalculateRcs(double phi, double theta) {
 
 	auto optix_start = high_resolution_clock::now();
 
+
+	// allocate gpu memory to gpu pointer
+	CUDA_CHECK(cudaMalloc((void**)&device_ptr, sizeof(Result) * size));
+	params.result = device_ptr;
+	// copy data from host to device
+	//CUDA_CHECK(cudaMemcpy(device_ptr, results, sizeof(Result) * size,
+	//	cudaMemcpyHostToDevice));
+	CUDA_SYNC_CHECK();
+
 	CUdeviceptr d_param;
 	CUDA_CHECK(cudaMalloc(reinterpret_cast<void**>(&d_param), sizeof(Params)));
 	CUDA_CHECK(cudaMemcpy(reinterpret_cast<void*>(d_param), &params,
@@ -870,38 +872,23 @@ double RcsPredictor::CalculateRcs(double phi, double theta) {
 	auto ms_int = duration_cast<milliseconds>(optix_end - optix_start);
 	std::cout << "optix time usage: " << ms_int.count() << "ms\n";
 
-	auto copy_start = high_resolution_clock::now();
-	CUDA_CHECK(cudaMemcpy(results, device_ptr, sizeof(Result) * size,
-		cudaMemcpyDeviceToHost));
-	CUDA_SYNC_CHECK();
 
-	auto copy_end = high_resolution_clock::now();
-	ms_int = duration_cast<milliseconds>(copy_end - copy_start);
-
-	std::cout << "result copy time usage: " << ms_int.count() << "ms\n";
-
+	//cudaDeviceSynchronize();
+	std::complex<double> au;
+	std::complex<double> ar;
 	auto sum_start = high_resolution_clock::now();
 
-	double au_real = 0;
-	double au_img = 0;
-	double ar_real = 0;
-	double ar_img = 0;
 
-#pragma omp parallel for reduction (+:au_real, au_img, ar_real, ar_img)
-	for (int i = 0; i < size; i++) {
-		Result cur_result = results[i];
-		if (cur_result.refCount > 0) {
-			au_real += cur_result.au_real;
-			au_img += cur_result.au_img;
-			ar_real += cur_result.ar_real;
-			ar_img += cur_result.ar_img;
-		}
-	}
-	std::complex<double> au = std::complex<double>(au_real, au_img);
-	std::complex<double> ar = std::complex<double>(ar_real, ar_img);
+	Result result = reduce(device_ptr, size);
+	CUDA_SYNC_CHECK();
+	au = std::complex<double>(result.au_real, result.au_img);
+	ar = std::complex<double>(result.ar_real, result.ar_img);
+
+
 	double ausq = pow(abs(au), 2);
 	double arsq = pow(abs(ar), 2);
 	double rcs_ori = 4.0 * M_PI * (ausq + arsq);  // * 4 * pi
+	double rcs_db = 10 * log10(rcs_ori);
 
 	auto sum_end = high_resolution_clock::now();
 	ms_int = duration_cast<milliseconds>(sum_end - sum_start);
@@ -910,9 +897,11 @@ double RcsPredictor::CalculateRcs(double phi, double theta) {
 	if (is_debug) {
 		cout << "au : " << au << endl;
 		cout << "ar : " << ar << endl;
+		cout << "rcs:" << rcs_db << endl;
 	}
 
 	CUDA_CHECK(cudaFree(reinterpret_cast<void*>(d_param)));
+
 	return rcs_ori;
 }
 

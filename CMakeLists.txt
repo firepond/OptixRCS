@@ -334,6 +334,7 @@ find_package(OptiX REQUIRED)
 include_directories(
   "${OptiX_INCLUDE}"
   "${CMAKE_CURRENT_SOURCE_DIR}/cuda"
+  ${CUDA_INCLUDE_DIRS}
   )
 
 # Select whether to use NVRTC or NVCC to generate PTX

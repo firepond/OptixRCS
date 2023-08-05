@@ -11,11 +11,11 @@
 enum PolarizationTypes { HH,VV };
 
 struct Result {
-    float au_real;
-    float au_img;
-    float ar_real;
-    float ar_img;
-    int refCount;
+    float au_real=0;
+    float au_img=0;
+    float ar_real=0;
+    float ar_img=0;
+    int refCount=0;
 };
 
 struct Params {
@@ -63,4 +63,7 @@ struct MeshData {
 struct HitGroupData {
     void* shape_data;
 };
+
+
+
 #endif  // RCS_PARAMS_

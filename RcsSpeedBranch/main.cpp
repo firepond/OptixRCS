@@ -6,6 +6,8 @@
 #include <sutil/Trackball.h>
 #include <sutil/sutil.h>
 
+#include "reduceKernels.h"
+
 #include <algorithm>
 #include <array>
 #include <chrono>
@@ -34,8 +36,8 @@ using std::to_string;
 int main(int argc, char* argv[]) {
 	auto sum_start = high_resolution_clock::now();
 	bool is_debug = false;
-	string test_model = "hawker_800";
-	//string test_model = "d_reflector";
+	//string test_model = "hawker_800";
+	string test_model = "corner_reflector";
    // string test_model = "large_trihedral_reflector";
 
 	string rootPathPrefix = "C:/development/optix/OptixRCS";
@@ -43,18 +45,18 @@ int main(int argc, char* argv[]) {
 	// double c = 299792458.0;
 	// int rays_per_dimension = 3000;
 	//  500 Mhz
-	double freq = 10E9;
-	int rays_per_lamada = 10;
+	double freq = 3E9;
+	int rays_per_lamada = 100;
 
 	// start and end included
-	double phi_start = 0;
-	double phi_end = 90;
-	double phi_interval = 45;
+	double phi_start = 40;
+	double phi_end = 50;
+	double phi_interval = 5;
 
-	double theta_start = 90;
-	double theta_end = 90;
+	double theta_start = 57;
+	double theta_end = 57;
 	double theta_interval = 1;
-
+	//reduce();
 	if (argc > 1) {
 		// list structure: numpy style [start:end:step]
 		freq = atof(argv[1]);
@@ -100,8 +102,8 @@ int main(int argc, char* argv[]) {
 		<< "]" << endl;
 
 	RcsPredictor predicitor;
-	predicitor.is_debug = false;
-	predicitor.centerRelocate = true;
+	predicitor.is_debug = true;
+	predicitor.centerRelocate = false;
 	predicitor.init(obj_file, rays_per_lamada, freq);
 
 	// [0, (phi_count-1)]
