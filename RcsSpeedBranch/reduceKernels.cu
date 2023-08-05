@@ -42,7 +42,6 @@ __global__ void reduceKernel(Result* g_idata, Result* g_odata, int size) {
 	// write result for this block to global mem
 	if (tid == 0) {
 		g_odata[blockIdx.x] = sdata[0];
-		
 	}
 
 }
@@ -54,30 +53,31 @@ Result reduce(Result* g_idata, int size)
 
 	int reduceCount = ceil(log2(size) / log2(blockDim));
 
-
-
 	Result* out_device;
 	Result* to_reduce_device = g_idata;
-	int block_count = ceil(size / blockDim);
+	int block_count = ceil((double)size / blockDim);
+	cudaMalloc((void**)&out_device, sizeof(Result) * block_count);
+	Result* out_device_holder = out_device;
+	cudaDeviceSynchronize();
+
 	while (size > 1) {
 		block_count = ceil((double)size / blockDim);
-		// allocate gpu memory to gpu pointer
-		cudaMalloc((void**)&out_device, sizeof(Result) * block_count);
-		//cudaMemcpy(result_out_device, result_out, sizeof(Result) * block_count,
-		//	cudaMemcpyHostToDevice);
+		reduceKernel <<< block_count, blockDim >>> (to_reduce_device, out_device, size);
 		cudaDeviceSynchronize();
-		reduceKernel <<< block_count, blockDim >> > (to_reduce_device, out_device, size);
-		cudaFree(reinterpret_cast<void*>(to_reduce_device));
+
+		// swap to_reduce_device and out_device
+		Result* temp;
+		temp = to_reduce_device;
 		to_reduce_device = out_device;
+		out_device = temp;
+
 		size = block_count;
 	}
 
-
-	//Result result_out = (Result*)malloc(sizeof(Result) * block_count);
 	Result result_out;
-	cudaMemcpy(&result_out, out_device, sizeof(Result),
+	cudaMemcpy(&result_out, to_reduce_device, sizeof(Result),
 		cudaMemcpyDeviceToHost);
-	cudaFree(reinterpret_cast<void*>(out_device));
+	cudaFree(reinterpret_cast<void*>(out_device_holder));
 	cudaDeviceSynchronize();
 	return result_out;
 }

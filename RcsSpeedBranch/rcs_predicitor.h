@@ -838,14 +838,13 @@ void RcsPredictor::initOptix() {
 	/*CUstream stream;*/
 	CUDA_CHECK(cudaStreamCreate(&stream));
 
-	//results = (Result*)malloc(sizeof(Result) * size);
-
-	//params.rays_per_dimension = rays_dimension;
-	params.handle = ias.handle;
-	params.type = VV;
-
+	// allocate gpu memory to gpu pointer
+	CUDA_CHECK(cudaMalloc((void**)&device_ptr, sizeof(Result)* size));
 	params.result = device_ptr;
 
+	CUDA_SYNC_CHECK();
+	params.handle = ias.handle;
+	params.type = VV;
 }
 
 
@@ -862,15 +861,6 @@ double RcsPredictor::CalculateRcs(double phi, double theta) {
 	calculateOrientation();
 
 	auto optix_start = high_resolution_clock::now();
-
-
-	// allocate gpu memory to gpu pointer
-	CUDA_CHECK(cudaMalloc((void**)&device_ptr, sizeof(Result) * size));
-	params.result = device_ptr;
-	// copy data from host to device
-	//CUDA_CHECK(cudaMemcpy(device_ptr, results, sizeof(Result) * size,
-	//	cudaMemcpyHostToDevice));
-	CUDA_SYNC_CHECK();
 
 	CUdeviceptr d_param;
 	CUDA_CHECK(cudaMalloc(reinterpret_cast<void**>(&d_param), sizeof(Params)));

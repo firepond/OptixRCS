@@ -36,7 +36,7 @@ using std::to_string;
 int main(int argc, char* argv[]) {
 	auto program_start = high_resolution_clock::now();
 	bool is_debug = false;
-	string test_model = "hawker_800";
+	string test_model = "a380";
 	//string test_model = "corner_reflector";
 	// string test_model = "large_trihedral_reflector";
 
@@ -44,19 +44,19 @@ int main(int argc, char* argv[]) {
 
 	// double c = 299792458.0;
 	// int rays_per_dimension = 3000;
-	//  500 Mhz
-	double freq = 10E9;
-	int rays_per_lamada = 10;
+	//  max dimension for RTX3060 6GB: 20000
+	double freq = 1E9;
+	int rays_per_lamada = 50;
 
 	// start and end included
 	double phi_start = 40;
 	double phi_end = 50;
 	double phi_interval = 5;
 
-	double theta_start = 57;
-	double theta_end = 57;
+	double theta_start = 90;
+	double theta_end = 90;
 	double theta_interval = 1;
-	//reduce();
+
 	if (argc > 1) {
 		// list structure: numpy style [start:end:step]
 		freq = atof(argv[1]);
@@ -84,7 +84,9 @@ int main(int argc, char* argv[]) {
 		theta_end = theta_result[1];
 		theta_interval = theta_result[2];
 
-		test_model = string(argv[4]);
+		rays_per_lamada = atoi(argv[4]);
+
+		test_model = string(argv[5]);
 	}
 
 	string obj_file = rootPathPrefix + "/resources/" + test_model + ".obj";
