@@ -15,7 +15,6 @@ struct Result {
     float au_img=0;
     float ar_real=0;
     float ar_img=0;
-    int refCount=0;
 };
 
 struct Params {

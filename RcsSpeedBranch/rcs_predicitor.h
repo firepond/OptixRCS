@@ -588,8 +588,21 @@ void RcsPredictor::init(const string& obj_filename, int rays_per_lamada,
 	if (centerRelocate) {
 		moveModelToZero();
 	}
+
+	auto init_start = high_resolution_clock::now();
+
 	initOptix();
+
+	auto init_end = high_resolution_clock::now();
+	auto ms_int = duration_cast<milliseconds>(init_end - init_start);
+	std::cout << "OptiX init time:" << ms_int.count() << "ms\n";
+
+	init_start = high_resolution_clock::now();
 	calculateOutnormal();
+	init_end = high_resolution_clock::now();
+	ms_int = duration_cast<milliseconds>(init_end - init_start);
+	std::cout << "out normals init time:" << ms_int.count() << "ms\n";
+
 	//calculateOrientation();
 
 }

@@ -103,7 +103,6 @@ extern "C" __global__ void __raygen__rg() {
 	result->ar_real = 0.0f;
 	result->au_img = 0.0f;
 	result->au_real = 0.0f;
-	result->refCount = 0;
 
 	trace(params.handle, origin, direction, pldptr, 0, 1,
 		0);
@@ -176,8 +175,6 @@ extern "C" __global__ void __miss__ms() {
 	params.result[ray_id].au_img = AU.imag();
 	params.result[ray_id].ar_real = AR.real();
 	params.result[ray_id].ar_img = AR.imag();
-
-	params.result[ray_id].refCount = pldptr->refCount;
 }
 
 extern "C" __global__ void __closesthit__triangle() {

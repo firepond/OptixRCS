@@ -30,23 +30,19 @@ __global__ void reduceKernel(Result* g_idata, Result* g_odata, int size) {
 	// do reduction in shared mem
 	for (unsigned int s = 1; s < blockDim.x; s *= 2) {
 		if (tid % (2 * s) == 0) {
-			//Result rl = sdata[tid];
-			//Result rr = sdata[tid + s];
 			sdata[tid].ar_img += sdata[tid + s].ar_img;
 			sdata[tid].ar_real += sdata[tid + s].ar_real;
 			sdata[tid].au_img += sdata[tid + s].au_img;
 			sdata[tid].au_real += sdata[tid + s].au_real;
-			sdata[tid].refCount += sdata[tid + s].refCount;
-
-			//sdata[tid] += sdata[tid + s];
+	
 		}
 		__syncthreads();
 	}
-	//__syncthreads();
+
 	// write result for this block to global mem
 	if (tid == 0) {
 		g_odata[blockIdx.x] = sdata[0];
-		//g_odata[blockIdx.x].refCount = 2;
+		
 	}
 
 }

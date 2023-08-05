@@ -34,19 +34,19 @@ using std::string;
 using std::to_string;
 
 int main(int argc, char* argv[]) {
-	auto sum_start = high_resolution_clock::now();
+	auto program_start = high_resolution_clock::now();
 	bool is_debug = false;
-	//string test_model = "hawker_800";
-	string test_model = "corner_reflector";
-   // string test_model = "large_trihedral_reflector";
+	string test_model = "hawker_800";
+	//string test_model = "corner_reflector";
+	// string test_model = "large_trihedral_reflector";
 
 	string rootPathPrefix = "C:/development/optix/OptixRCS";
 
 	// double c = 299792458.0;
 	// int rays_per_dimension = 3000;
 	//  500 Mhz
-	double freq = 3E9;
-	int rays_per_lamada = 100;
+	double freq = 10E9;
+	int rays_per_lamada = 10;
 
 	// start and end included
 	double phi_start = 40;
@@ -101,11 +101,18 @@ int main(int argc, char* argv[]) {
 	cout << "Theta: [" << theta_start << ":" << theta_end << ":" << theta_count
 		<< "]" << endl;
 
+	auto init_start = high_resolution_clock::now();
+
 	RcsPredictor predicitor;
 	predicitor.is_debug = true;
 	predicitor.centerRelocate = false;
 	predicitor.init(obj_file, rays_per_lamada, freq);
 
+	auto init_end = high_resolution_clock::now();
+	auto ms_int = duration_cast<milliseconds>(init_end - init_start);
+	std::cout << "Environments init time:" << ms_int.count() << "ms\n";
+
+	auto rcs_start = high_resolution_clock::now();
 	// [0, (phi_count-1)]
 	for (int phi_i = 0; phi_i < phi_count; phi_i++) {
 		double cur_phi = phi_start + phi_interval * phi_i;
@@ -134,10 +141,15 @@ int main(int argc, char* argv[]) {
 				<< rcs << ", " << endl;
 		}
 	}
-	auto sum_end = high_resolution_clock::now();
-	auto ms_int = duration_cast<milliseconds>(sum_end - sum_start);
-	std::cout << "rcs sum time usage for " << phi_count * theta_count
-		<< " points : " << ms_int.count() << "ms\n";
+	auto rcs_end = high_resolution_clock::now();
+	ms_int = duration_cast<milliseconds>(rcs_end - rcs_start);
+	std::cout << "OptiX calculation time for " << phi_count * theta_count
+		<< " points : " << ms_int.count() << "ms, averge: " << (double)ms_int.count() / phi_count * theta_count << endl;
+
+	auto program_end = high_resolution_clock::now();
+	ms_int = duration_cast<milliseconds>(program_end - program_start);
+	std::cout << "Whole program time for " << phi_count * theta_count
+		<< " points : " << ms_int.count() << "ms, averge: " << (double)ms_int.count() / phi_count * theta_count << endl;
 
 	out_stream.close();
 
