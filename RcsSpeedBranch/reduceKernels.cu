@@ -24,20 +24,16 @@ __device__ Result operator+(const Result& a, const Result& b){
 
 
 __global__ void reduceKernel(Result* g_idata, Result* g_odata, int size) {
-	int temp = (blockIdx.x + 1) * blockDim.x;
-
-	
 	extern __shared__ Result sdata[512];
-
-	// each thread loads one element from global to shared mem
+	
 	unsigned int tid = threadIdx.x;
-	unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
+	unsigned int i = blockIdx.x * (blockDim.x * 2) + threadIdx.x;
 
-	if (i < size) {
-		sdata[tid] = g_idata[i];
+	if (i + blockDim.x < size) {
+		sdata[tid] = g_idata[i] + g_idata[i + blockDim.x];
 	}
 	else {
-		sdata[tid] = zero;
+		sdata[tid] = g_idata[i];
 	}
 
 	__syncthreads();
@@ -58,23 +54,23 @@ __global__ void reduceKernel(Result* g_idata, Result* g_odata, int size) {
 
 Result reduce(Result* g_idata, int size) {
 	int blockDim = 512;
-
-	int reduceCount = ceil(log2(size) / log2(blockDim));
+	int reduceDim = blockDim * 2;
+	int reduceCount = ceil(log2(size) / log2(reduceDim));
 
 	Result* out_device;
 	Result* to_reduce_device = g_idata;
-	int block_count = ceil((double)size / blockDim);
+	int block_count = ceil((double)size / reduceDim);
 	cudaMalloc((void**)&out_device, sizeof(Result) * block_count);
 	Result* out_device_holder = out_device;
 	cudaDeviceSynchronize();
 
 	while (size > 1) {
-		if (size <= blockDim) {
+		if (size <= reduceDim) {
 			reduceKernel << <1, blockDim >> > (to_reduce_device, out_device, size);
 			break;
 		}
 		else {
-			block_count = ceil((double)size / blockDim);
+			block_count = ceil((double)size / reduceDim);
 			reduceKernel << <block_count, blockDim >> > (to_reduce_device,
 				out_device, size);
 		}
