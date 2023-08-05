@@ -390,6 +390,7 @@ private:
 	std::vector<std::pair<ShapeType, HitGroupData>> hitgroup_datas;
 
 	CUstream stream;
+	CUdeviceptr d_param;
 
 	void initOptix();
 	void calculateOrientation();
@@ -425,7 +426,8 @@ RcsPredictor::~RcsPredictor() {
 	CUDA_CHECK(cudaFree(reinterpret_cast<void*>(sbt.missRecordBase)));
 	CUDA_CHECK(cudaFree(reinterpret_cast<void*>(sbt.hitgroupRecordBase)));
 
-	//CUDA_CHECK(cudaFree(reinterpret_cast<void*>(device_ptr)));
+	CUDA_CHECK(cudaFree(reinterpret_cast<void*>(device_ptr)));
+	CUDA_CHECK(cudaFree(reinterpret_cast<void*>(d_param)));
 	CUDA_CHECK(cudaFree(reinterpret_cast<void*>(out_normal_device)));
 
 	OPTIX_CHECK(optixPipelineDestroy(pipeline));
@@ -440,6 +442,8 @@ RcsPredictor::~RcsPredictor() {
 	//free(results);
 	free(out_normals);
 }
+
+
 
 // move model to the zero point to reduce rays
 void RcsPredictor::moveModelToZero() {
@@ -465,7 +469,6 @@ void RcsPredictor::moveModelToZero() {
 	aabb.maxZ -= z_offset;
 	aabb.minZ -= z_offset;
 }
-
 
 
 
@@ -842,9 +845,13 @@ void RcsPredictor::initOptix() {
 	CUDA_CHECK(cudaMalloc((void**)&device_ptr, sizeof(Result)* size));
 	params.result = device_ptr;
 
-	CUDA_SYNC_CHECK();
+	//CUDA_SYNC_CHECK();
 	params.handle = ias.handle;
 	params.type = VV;
+
+	//CUdeviceptr d_param;
+	CUDA_CHECK(cudaMalloc(reinterpret_cast<void**>(&d_param), sizeof(Params)));
+	CUDA_SYNC_CHECK();
 }
 
 
@@ -862,8 +869,6 @@ double RcsPredictor::CalculateRcs(double phi, double theta) {
 
 	auto optix_start = high_resolution_clock::now();
 
-	CUdeviceptr d_param;
-	CUDA_CHECK(cudaMalloc(reinterpret_cast<void**>(&d_param), sizeof(Params)));
 	CUDA_CHECK(cudaMemcpy(reinterpret_cast<void*>(d_param), &params,
 		sizeof(Params), cudaMemcpyHostToDevice));
 
@@ -875,8 +880,6 @@ double RcsPredictor::CalculateRcs(double phi, double theta) {
 	auto ms_int = duration_cast<milliseconds>(optix_end - optix_start);
 	std::cout << "optix time usage: " << ms_int.count() << "ms\n";
 
-
-	//cudaDeviceSynchronize();
 	std::complex<double> au;
 	std::complex<double> ar;
 	auto sum_start = high_resolution_clock::now();
@@ -900,10 +903,8 @@ double RcsPredictor::CalculateRcs(double phi, double theta) {
 	if (is_debug) {
 		cout << "au : " << au << endl;
 		cout << "ar : " << ar << endl;
-		cout << "rcs:" << rcs_db << endl;
+		cout << "rcs ori:" << rcs_ori << endl;
 	}
-
-	CUDA_CHECK(cudaFree(reinterpret_cast<void*>(d_param)));
 
 	return rcs_ori;
 }
