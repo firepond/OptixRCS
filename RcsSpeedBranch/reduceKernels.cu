@@ -5,17 +5,16 @@
 #include <sutil/vec_math.h>
 #include <cmath>
 
+__constant__ Result zero;
+
+
 __global__ void reduceKernel(Result* g_idata, Result* g_odata, int size) {
 
 	int temp = (blockIdx.x + 1) * blockDim.x;
 
 	int curBlockSize = (temp <= size) * blockDim.x + (temp > size) * (size % blockDim.x);
 	extern __shared__ Result sdata[512];
-	Result zero;
-	zero.ar_img = 0.0f;
-	zero.ar_real = 0.0f;
-	zero.au_img = 0.0f;
-	zero.au_real = 0.0f;
+
 	// each thread loads one element from global to shared mem
 	unsigned int tid = threadIdx.x;
 	unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -28,8 +27,9 @@ __global__ void reduceKernel(Result* g_idata, Result* g_odata, int size) {
 
 	__syncthreads();
 	// do reduction in shared mem
-	for (unsigned int s = 1; s < blockDim.x; s *= 2) {
-		if (tid % (2 * s) == 0) {
+
+	for (unsigned int s = blockDim.x / 2; s > 0; s >>= 1) {
+		if (tid < s) {
 			sdata[tid].ar_img += sdata[tid + s].ar_img;
 			sdata[tid].ar_real += sdata[tid + s].ar_real;
 			sdata[tid].au_img += sdata[tid + s].au_img;
@@ -61,8 +61,15 @@ Result reduce(Result* g_idata, int size)
 	cudaDeviceSynchronize();
 
 	while (size > 1) {
-		block_count = ceil((double)size / blockDim);
-		reduceKernel <<< block_count, blockDim >>> (to_reduce_device, out_device, size);
+		if (size <= blockDim) {
+			reduceKernel <<< 1, blockDim >>> (to_reduce_device, out_device, size);
+			break;
+		}
+		else {
+			block_count = ceil((double)size / blockDim);
+			reduceKernel <<< block_count, blockDim >>> (to_reduce_device, out_device, size);
+		}
+	
 		cudaDeviceSynchronize();
 
 		// swap to_reduce_device and out_device
@@ -75,7 +82,7 @@ Result reduce(Result* g_idata, int size)
 	}
 
 	Result result_out;
-	cudaMemcpy(&result_out, to_reduce_device, sizeof(Result),
+	cudaMemcpy(&result_out, out_device, sizeof(Result),
 		cudaMemcpyDeviceToHost);
 	cudaFree(reinterpret_cast<void*>(out_device_holder));
 	cudaDeviceSynchronize();

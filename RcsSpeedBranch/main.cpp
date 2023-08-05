@@ -45,8 +45,8 @@ int main(int argc, char* argv[]) {
 	// double c = 299792458.0;
 	// int rays_per_dimension = 3000;
 	//  max dimension for RTX3060 6GB: 20000
-	double freq = 1E9;
-	int rays_per_lamada = 50;
+	double freq = 3E9;
+	int rays_per_lamada = 10;
 
 	// start and end included
 	double phi_start = 40;
