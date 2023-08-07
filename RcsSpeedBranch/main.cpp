@@ -1,36 +1,21 @@
-
-#include <sampleConfig.h>
-#include <sutil/CUDAOutputBuffer.h>
-#include <sutil/Camera.h>
-#include <sutil/Exception.h>
-#include <sutil/Trackball.h>
-#include <sutil/sutil.h>
-
-#include <algorithm>
-#include <array>
-#include <chrono>
 #include <cmath>
-#include <complex>
 #include <fstream>
-#include <iomanip>
 #include <iostream>
-#include <nlohmann/json.hpp>
 #include <string>
-#include <vector>
 
-#include "RcsSpeedBranch/rcs_params.h"
-#include "RcsSpeedBranch/rcs_predicitor.h"
+#include <nlohmann/json.hpp>
+
+#include "rcs_predicitor.h"
 
 using std::chrono::duration;
 using std::chrono::duration_cast;
 using std::chrono::high_resolution_clock;
 using std::chrono::milliseconds;
 
-// using std::complex;
 using std::cout;
 using std::endl;
 using std::string;
-using std::to_string;
+
 using json = nlohmann::json;
 
 template <typename T>

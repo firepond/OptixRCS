@@ -1,20 +1,21 @@
 #include <cuda_runtime.h>
+
 #include <optix.h>
 #include <optix_function_table_definition.h>
 #include <optix_stack_size.h>
 #include <optix_stubs.h>
+
 #include <sampleConfig.h>
-#include <sutil/CUDAOutputBuffer.h>
+
 #include <sutil/Camera.h>
 #include <sutil/Exception.h>
 #include <sutil/Trackball.h>
 #include <sutil/sutil.h>
 
-#include <chrono>
+#include <complex>
 #include <iostream>
-#include <execution>
 
-#include "RcsSpeedBranch/rcs_params.h"
+#include "rcs_params.h"
 #include "reduceKernels.h"
 
 #ifndef TINYOBJLOADER_IMPLEMENTATION
@@ -370,7 +371,6 @@ private:
 	float3* out_normals;
 	float3* out_normal_device;
 
-	//Result* results;
 	Result* device_ptr;
 
 	Params params;
@@ -455,7 +455,6 @@ void RcsPredictor::moveModelToZero() {
 
 	int vertices_num = vertices.size();
 
-#pragma omp parallel for
 	for (int i = 0; i < vertices_num; i++) {
 		vertices[i].x -= x_offset;
 		vertices[i].y -= y_offset;
@@ -584,10 +583,9 @@ void RcsPredictor::init(const string& obj_filename, int rays_per_lamada,
 
 	float rayRadius = radius / rays_dimension;
 	float rayDiameter = rayRadius * 2;
-
 	float rayArea = rayDiameter * rayDiameter;
-
 	float t_value = (waveNum * rayArea) / (4.0f * M_PIf);
+
 	params.t_value = t_value;
 
 	if (centerRelocate) {
@@ -603,12 +601,12 @@ void RcsPredictor::init(const string& obj_filename, int rays_per_lamada,
 	std::cout << "OptiX init time:" << ms_int.count() << "ms\n";
 
 	init_start = high_resolution_clock::now();
+
 	calculateOutnormal();
+
 	init_end = high_resolution_clock::now();
 	ms_int = duration_cast<milliseconds>(init_end - init_start);
 	std::cout << "out normals init time:" << ms_int.count() << "ms\n";
-
-	//calculateOrientation();
 
 }
 
@@ -840,7 +838,7 @@ void RcsPredictor::initOptix() {
 			static_cast<uint32_t>(sizeof(HitGroupSbtRecord));
 		sbt.hitgroupRecordCount = static_cast<uint32_t>(hitgroup_datas.size());
 	}
-	/*CUstream stream;*/
+
 	CUDA_CHECK(cudaStreamCreate(&stream));
 
 	// allocate gpu memory to gpu pointer
@@ -850,8 +848,7 @@ void RcsPredictor::initOptix() {
 	params.reflectance = reflectance;
 	params.handle = ias.handle;
 	params.type = type;
-
-	//CUdeviceptr d_param;
+	
 	CUDA_CHECK(cudaMalloc(reinterpret_cast<void**>(&d_param), sizeof(Params)));
 	CUDA_SYNC_CHECK();
 }
@@ -865,7 +862,6 @@ double RcsPredictor::CalculateRcs(double phi, double theta) {
 	//
 	// launch
 	//
-
 	params.observer_pos = observer_pos;
 	calculateOrientation();
 

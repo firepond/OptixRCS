@@ -6,7 +6,7 @@
 #include <cuda/std/complex>
 
 #include "complex_vector.cu"
-#include "sphere.h"
+//#include "sphere.h"
 #include "rcs_params.h"
 
 extern "C" {
