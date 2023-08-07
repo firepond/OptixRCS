@@ -1,3 +1,5 @@
 /build
 *.pth
 /.vscode
+*.png
+/test
