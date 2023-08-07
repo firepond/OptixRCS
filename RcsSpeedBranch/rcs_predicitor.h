@@ -568,7 +568,19 @@ void RcsPredictor::init(const string& obj_filename, int rays_per_lamada,
 	rays_dimension = ceil(lamda_nums * rays_per_lamada + 1.0f) + 1;
 	size = rays_dimension * rays_dimension;
 
-	cout << "using " << rays_dimension << " rays perdimension" << endl;
+	cout << "Using " << rays_dimension << " rays perdimension" << endl;
+
+
+	cudaDeviceProp prop;
+	cudaGetDeviceProperties(&prop, 0);
+	printf("  Using Device name: %s\n", prop.name);
+	size_t vram = prop.totalGlobalMem;
+	size_t max_rays = vram / 17;
+	int max_dimension = ceil(sqrt(max_rays));
+	if (rays_dimension > max_dimension) {
+		cout << "  Not enough GPU memory for: " << rays_dimension << " rays perdimension, quiting";
+		exit(1);
+	}
 
 
 	float ray_radius = radius / rays_dimension;

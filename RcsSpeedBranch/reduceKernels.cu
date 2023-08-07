@@ -1,4 +1,3 @@
-// #include <cuda/helpers.h>
 #include <cuda_runtime.h>
 #include <sutil/vec_math.h>
 
@@ -8,8 +7,6 @@
 #include "reduceKernels.h"
 
 __constant__ Result zero;
-
-
 
 __device__ Result operator+(const Result& a, const Result& b){
 	Result res;
