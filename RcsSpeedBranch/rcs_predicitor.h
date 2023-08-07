@@ -640,10 +640,10 @@ double RcsPredictor::CalculateRcs(double phi, double theta) {
 	auto sum_start = high_resolution_clock::now();
 
 
-	Result result = reduce(results_device, size);
+	Result* result = reduce(results_device, size);
 	CUDA_SYNC_CHECK();
-	au = std::complex<double>(result.au_real, result.au_img);
-	ar = std::complex<double>(result.ar_real, result.ar_img);
+	au = std::complex<double>(result[0], result[1]);
+	ar = std::complex<double>(result[2], result[3]);
 
 
 	double ausq = pow(abs(au), 2);
@@ -896,7 +896,7 @@ void RcsPredictor::initOptix() {
 	CUDA_CHECK(cudaStreamCreate(&stream));
 
 	// allocate gpu memory to gpu pointer
-	CUDA_CHECK(cudaMalloc((void**)&results_device, sizeof(Result) * size));
+	CUDA_CHECK(cudaMalloc((void**)&results_device, sizeof(Result) * size * 4));
 	params.result = results_device;
 
 	params.reflectance = reflectance;

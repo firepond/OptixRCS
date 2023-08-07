@@ -2,16 +2,16 @@
 #include <cuda_runtime.h>
 #include <optix.h>
 #include <sutil/vec_math.h>
-
 #include <cuda/std/complex>
 
 #include "complex_vector.cu"
-//#include "sphere.h"
 #include "rcs_params.h"
 
 extern "C" {
 	__constant__ Params params;
 }
+
+
 
 static __forceinline__ __device__ void packPointer(void* ptr, unsigned int& i0,
 	unsigned int& i1) {
@@ -19,6 +19,8 @@ static __forceinline__ __device__ void packPointer(void* ptr, unsigned int& i0,
 	i0 = uptr >> 32;
 	i1 = uptr & 0x00000000ffffffff;
 }
+
+
 
 static __forceinline__ __device__ void* unpackPointer(unsigned int i0,
 	unsigned int i1) {
@@ -28,17 +30,17 @@ static __forceinline__ __device__ void* unpackPointer(unsigned int i0,
 	return ptr;
 }
 
+
+
 struct Payload {
 	unsigned int ray_id;  // unique id of the ray
-
 	int refCount;
-
 	float tpath;  // total path length until last bounes
-
 	float3 polarization;
-
 	float3 refNormal;
 };
+
+
 
 static __forceinline__ __device__ void trace(
 	OptixTraversableHandle handle, float3 ray_origin, float3 ray_direction,
@@ -55,6 +57,8 @@ static __forceinline__ __device__ void trace(
 		miss,    // missSBTIndex
 		p0, p1);
 }
+
+
 
 static __forceinline__ __device__ Payload* getPayload() {
 	unsigned int p0, p1;
@@ -77,6 +81,8 @@ __device__ __forceinline__ float3 getnormal(const unsigned int triId) {
 	return normal;
 }
 
+
+
 extern "C" __global__ void __raygen__rg() {
 	const uint3 idx = optixGetLaunchIndex();
 	const uint3 dim = optixGetLaunchDimensions();
@@ -93,20 +99,17 @@ extern "C" __global__ void __raygen__rg() {
 
 	pld.polarization = params.polarization;
 	pld.tpath = 0.0f;
-	pld.ray_id = idx.x + dim.x * idx.y;
+	int ray_id = idx.x + dim.x * idx.y;
+	pld.ray_id = ray_id;
 	pld.refCount = 0;
 
 	Payload* pldptr = &pld;
 
-	Result* result = params.result;
-	result->ar_img = 0.0f;
-	result->ar_real = 0.0f;
-	result->au_img = 0.0f;
-	result->au_real = 0.0f;
-
 	trace(params.handle, origin, direction, pldptr, 0, 1,
 		0);
 }
+
+
 
 extern "C" __global__ void __miss__ms() {
 	unsigned int p0, p1;
@@ -171,12 +174,13 @@ extern "C" __global__ void __miss__ms() {
 			printf("waveNum: %f\n", waveNum);
 		}*/
 	}
-
-	params.result[ray_id].au_real = AU.real();
-	params.result[ray_id].au_img = AU.imag();
-	params.result[ray_id].ar_real = AR.real();
-	params.result[ray_id].ar_img = AR.imag();
+	params.result[4*ray_id] = AU.real();
+	params.result[4*ray_id + 1] = AU.imag();
+	params.result[4*ray_id + 2] = AR.real();
+	params.result[4*ray_id + 3] = AR.imag();
 }
+
+
 
 extern "C" __global__ void __closesthit__triangle() {
 	unsigned int tri_id = optixGetPrimitiveIndex();
@@ -216,7 +220,6 @@ extern "C" __global__ void __closesthit__triangle() {
 
 	pldptr->refNormal = out_normal;
 	pldptr->refCount += 1;
-
 
 	trace(params.handle, hit_point, reflect_dir, pldptr, 0, 1, 0);
 }

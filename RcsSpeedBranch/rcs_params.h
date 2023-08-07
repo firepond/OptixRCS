@@ -10,13 +10,7 @@
  // V wave
 enum PolarizationType { HH, VV };
 
-struct Result {
-	float au_real = 0;
-	float au_img = 0;
-	float ar_real = 0;
-	float ar_img = 0;
-};
-
+typedef float Result;
 
 struct Params {
 	float wave_num;
