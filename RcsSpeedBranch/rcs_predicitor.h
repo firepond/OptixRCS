@@ -369,9 +369,9 @@ private:
 	int size;
 
 	float3* out_normals;
-	float3* out_normal_device;
+	float3* out_normals_device;
 
-	Result* device_ptr;
+	Result* results_device;
 
 	Params params;
 
@@ -409,7 +409,57 @@ public:
 	void RcsPredictor::init(const string& obj_filename, int rays_per_lamada,
 		double freq);
 
-	double RcsPredictor::CalculateRcs(double phi, double theta);
+	double RcsPredictor::CalculateRcs(double phi, double theta) {
+		// phi theta in radian
+		float2 observer_pos = make_float2(phi, theta);
+
+		//
+		// launch
+		//
+		params.observer_pos = observer_pos;
+		calculateOrientation();
+
+		auto optix_start = high_resolution_clock::now();
+
+		CUDA_CHECK(cudaMemcpy(reinterpret_cast<void*>(d_param), &params,
+			sizeof(Params), cudaMemcpyHostToDevice));
+
+		OPTIX_CHECK(optixLaunch(pipeline, stream, d_param, sizeof(Params), &sbt,
+			rays_dimension, rays_dimension, /*depth=*/1));
+		CUDA_SYNC_CHECK();
+
+		auto optix_end = high_resolution_clock::now();
+		auto ms_int = duration_cast<milliseconds>(optix_end - optix_start);
+		std::cout << "optix time usage: " << ms_int.count() << "ms\n";
+
+		std::complex<double> au;
+		std::complex<double> ar;
+		auto sum_start = high_resolution_clock::now();
+
+
+		Result result = reduce(results_device, size);
+		CUDA_SYNC_CHECK();
+		au = std::complex<double>(result.au_real, result.au_img);
+		ar = std::complex<double>(result.ar_real, result.ar_img);
+
+
+		double ausq = pow(abs(au), 2);
+		double arsq = pow(abs(ar), 2);
+		double rcs_ori = 4.0 * M_PI * (ausq + arsq);  // * 4 * pi
+		double rcs_db = 10 * log10(rcs_ori);
+
+		auto sum_end = high_resolution_clock::now();
+		ms_int = duration_cast<milliseconds>(sum_end - sum_start);
+		std::cout << "rcs sum time usage: " << ms_int.count() << "ms\n";
+
+		if (is_debug) {
+			cout << "au : " << au << endl;
+			cout << "ar : " << ar << endl;
+			cout << "rcs ori:" << rcs_ori << endl;
+		}
+
+		return rcs_ori;
+	}
 
 };
 
@@ -428,9 +478,9 @@ RcsPredictor::~RcsPredictor() {
 	CUDA_CHECK(cudaFree(reinterpret_cast<void*>(sbt.missRecordBase)));
 	CUDA_CHECK(cudaFree(reinterpret_cast<void*>(sbt.hitgroupRecordBase)));
 
-	CUDA_CHECK(cudaFree(reinterpret_cast<void*>(device_ptr)));
+	CUDA_CHECK(cudaFree(reinterpret_cast<void*>(results_device)));
 	CUDA_CHECK(cudaFree(reinterpret_cast<void*>(d_param)));
-	CUDA_CHECK(cudaFree(reinterpret_cast<void*>(out_normal_device)));
+	CUDA_CHECK(cudaFree(reinterpret_cast<void*>(out_normals_device)));
 
 	OPTIX_CHECK(optixPipelineDestroy(pipeline));
 	OPTIX_CHECK(optixProgramGroupDestroy(hitgroup_prog_group_triangle));
@@ -441,7 +491,6 @@ RcsPredictor::~RcsPredictor() {
 
 	OPTIX_CHECK(optixDeviceContextDestroy(context));
 
-	//free(results);
 	free(out_normals);
 }
 
@@ -489,12 +538,12 @@ void RcsPredictor::calculateOutnormal() {
 	}
 
 	// allocate gpu memory to gpu pointer
-	CUDA_CHECK(cudaMalloc((void**)&out_normal_device, sizeof(float3) * triangle_num));
+	CUDA_CHECK(cudaMalloc((void**)&out_normals_device, sizeof(float3) * triangle_num));
 	// copy data from host to device
-	CUDA_CHECK(cudaMemcpy(out_normal_device, out_normals, sizeof(float3) * triangle_num,
+	CUDA_CHECK(cudaMemcpy(out_normals_device, out_normals, sizeof(float3) * triangle_num,
 		cudaMemcpyHostToDevice));
 	CUDA_SYNC_CHECK();
-	params.out_normals = out_normal_device;
+	params.out_normals = out_normals_device;
 }
 
 void RcsPredictor::calculateOrientation() {
@@ -842,8 +891,8 @@ void RcsPredictor::initOptix() {
 	CUDA_CHECK(cudaStreamCreate(&stream));
 
 	// allocate gpu memory to gpu pointer
-	CUDA_CHECK(cudaMalloc((void**)&device_ptr, sizeof(Result)* size));
-	params.result = device_ptr;
+	CUDA_CHECK(cudaMalloc((void**)&results_device, sizeof(Result)* size));
+	params.result = results_device;
 
 	params.reflectance = reflectance;
 	params.handle = ias.handle;
@@ -854,57 +903,5 @@ void RcsPredictor::initOptix() {
 }
 
 
-
-double RcsPredictor::CalculateRcs(double phi, double theta) {
-	// phi theta in radian
-	float2 observer_pos = make_float2(phi, theta);
-
-	//
-	// launch
-	//
-	params.observer_pos = observer_pos;
-	calculateOrientation();
-
-	auto optix_start = high_resolution_clock::now();
-
-	CUDA_CHECK(cudaMemcpy(reinterpret_cast<void*>(d_param), &params,
-		sizeof(Params), cudaMemcpyHostToDevice));
-
-	OPTIX_CHECK(optixLaunch(pipeline, stream, d_param, sizeof(Params), &sbt,
-		rays_dimension, rays_dimension, /*depth=*/1));
-	CUDA_SYNC_CHECK();
-
-	auto optix_end = high_resolution_clock::now();
-	auto ms_int = duration_cast<milliseconds>(optix_end - optix_start);
-	std::cout << "optix time usage: " << ms_int.count() << "ms\n";
-
-	std::complex<double> au;
-	std::complex<double> ar;
-	auto sum_start = high_resolution_clock::now();
-
-
-	Result result = reduce(device_ptr, size);
-	CUDA_SYNC_CHECK();
-	au = std::complex<double>(result.au_real, result.au_img);
-	ar = std::complex<double>(result.ar_real, result.ar_img);
-
-
-	double ausq = pow(abs(au), 2);
-	double arsq = pow(abs(ar), 2);
-	double rcs_ori = 4.0 * M_PI * (ausq + arsq);  // * 4 * pi
-	double rcs_db = 10 * log10(rcs_ori);
-
-	auto sum_end = high_resolution_clock::now();
-	ms_int = duration_cast<milliseconds>(sum_end - sum_start);
-	std::cout << "rcs sum time usage: " << ms_int.count() << "ms\n";
-
-	if (is_debug) {
-		cout << "au : " << au << endl;
-		cout << "ar : " << ar << endl;
-		cout << "rcs ori:" << rcs_ori << endl;
-	}
-
-	return rcs_ori;
-}
 
 #endif
