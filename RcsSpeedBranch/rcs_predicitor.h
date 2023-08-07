@@ -370,7 +370,6 @@ private:
 
 	float3* out_normals;
 	float3* out_normals_device;
-
 	Result* results_device;
 
 	Params params;
@@ -395,6 +394,7 @@ private:
 	void calculateOrientation();
 	void calculateOutNormals();
 	void moveModelToZero();
+
 public:
 	bool is_debug = false;
 	bool center_relocate = false;
@@ -402,71 +402,14 @@ public:
 	int max_trace_depth = 10;
 	PolarizationType pol_type = HH;
 
-	RcsPredictor();
-
+	RcsPredictor() {};
 	~RcsPredictor();
 
 	void RcsPredictor::init(const string& obj_filename, int rays_per_lamada,
 		double freq);
-
-	double RcsPredictor::CalculateRcs(double phi, double theta) {
-		// phi theta in radian
-		float2 observer_angle = make_float2(phi, theta);
-
-		//
-		// launch
-		//
-		params.observer_angle = observer_angle;
-		calculateOrientation();
-
-		auto optix_start = high_resolution_clock::now();
-
-		CUDA_CHECK(cudaMemcpy(reinterpret_cast<void*>(params_device), &params,
-			sizeof(Params), cudaMemcpyHostToDevice));
-
-		OPTIX_CHECK(optixLaunch(pipeline, stream, params_device, sizeof(Params), &sbt,
-			rays_dimension, rays_dimension, /*depth=*/1));
-		CUDA_SYNC_CHECK();
-
-		auto optix_end = high_resolution_clock::now();
-		auto ms_int = duration_cast<milliseconds>(optix_end - optix_start);
-		std::cout << "optix time usage: " << ms_int.count() << "ms\n";
-
-		std::complex<double> au;
-		std::complex<double> ar;
-		auto sum_start = high_resolution_clock::now();
-
-
-		Result result = reduce(results_device, size);
-		CUDA_SYNC_CHECK();
-		au = std::complex<double>(result.au_real, result.au_img);
-		ar = std::complex<double>(result.ar_real, result.ar_img);
-
-
-		double ausq = pow(abs(au), 2);
-		double arsq = pow(abs(ar), 2);
-		double rcs_ori = 4.0 * M_PI * (ausq + arsq);  // * 4 * pi
-		double rcs_db = 10 * log10(rcs_ori);
-
-		auto sum_end = high_resolution_clock::now();
-		ms_int = duration_cast<milliseconds>(sum_end - sum_start);
-		std::cout << "rcs sum time usage: " << ms_int.count() << "ms\n";
-
-		if (is_debug) {
-			cout << "au : " << au << endl;
-			cout << "ar : " << ar << endl;
-			cout << "rcs ori:" << rcs_ori << endl;
-		}
-
-		return rcs_ori;
-	}
+	double RcsPredictor::CalculateRcs(double phi, double theta);
 
 };
-
-
-
-RcsPredictor::RcsPredictor() {}
-
 
 
 RcsPredictor::~RcsPredictor() {
@@ -486,9 +429,7 @@ RcsPredictor::~RcsPredictor() {
 	OPTIX_CHECK(optixProgramGroupDestroy(hitgroup_prog_group_triangle));
 	OPTIX_CHECK(optixProgramGroupDestroy(miss_prog_group));
 	OPTIX_CHECK(optixProgramGroupDestroy(raygen_prog_group));
-
 	OPTIX_CHECK(optixModuleDestroy(module));
-
 	OPTIX_CHECK(optixDeviceContextDestroy(context));
 
 	free(out_normals);
@@ -657,6 +598,58 @@ void RcsPredictor::init(const string& obj_filename, int rays_per_lamada,
 	ms_int = duration_cast<milliseconds>(init_end - init_start);
 	std::cout << "out normals init time:" << ms_int.count() << "ms\n";
 
+}
+
+double RcsPredictor::CalculateRcs(double phi, double theta) {
+	// phi theta in radian
+	float2 observer_angle = make_float2(phi, theta);
+
+	//
+	// launch
+	//
+	params.observer_angle = observer_angle;
+	calculateOrientation();
+
+	auto optix_start = high_resolution_clock::now();
+
+	CUDA_CHECK(cudaMemcpy(reinterpret_cast<void*>(params_device), &params,
+		sizeof(Params), cudaMemcpyHostToDevice));
+
+	OPTIX_CHECK(optixLaunch(pipeline, stream, params_device, sizeof(Params), &sbt,
+		rays_dimension, rays_dimension, /*depth=*/1));
+	CUDA_SYNC_CHECK();
+
+	auto optix_end = high_resolution_clock::now();
+	auto ms_int = duration_cast<milliseconds>(optix_end - optix_start);
+	std::cout << "optix time usage: " << ms_int.count() << "ms\n";
+
+	std::complex<double> au;
+	std::complex<double> ar;
+	auto sum_start = high_resolution_clock::now();
+
+
+	Result result = reduce(results_device, size);
+	CUDA_SYNC_CHECK();
+	au = std::complex<double>(result.au_real, result.au_img);
+	ar = std::complex<double>(result.ar_real, result.ar_img);
+
+
+	double ausq = pow(abs(au), 2);
+	double arsq = pow(abs(ar), 2);
+	double rcs_ori = 4.0 * M_PI * (ausq + arsq);  // * 4 * pi
+	double rcs_db = 10 * log10(rcs_ori);
+
+	auto sum_end = high_resolution_clock::now();
+	ms_int = duration_cast<milliseconds>(sum_end - sum_start);
+	std::cout << "rcs sum time usage: " << ms_int.count() << "ms\n";
+
+	if (is_debug) {
+		cout << "au : " << au << endl;
+		cout << "ar : " << ar << endl;
+		cout << "rcs ori:" << rcs_ori << endl;
+	}
+
+	return rcs_ori;
 }
 
 void RcsPredictor::initOptix() {
