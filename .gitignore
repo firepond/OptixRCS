@@ -1,7 +1,6 @@
 /build
 *.pth
-/.vscode
 *.png
 /test
 *.csv
-.vscode
+.vscode/

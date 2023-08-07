@@ -4,6 +4,11 @@
         "xstring": "cpp",
         "cmath": "cpp",
         "complex": "cpp",
-        "valarray": "cpp"
+        "valarray": "cpp",
+        "xhash": "cpp",
+        "xtree": "cpp",
+        "map": "cpp",
+        "set": "cpp",
+        "unordered_map": "cpp"
     }
 }
