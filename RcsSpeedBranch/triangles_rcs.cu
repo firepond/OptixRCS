@@ -144,7 +144,8 @@ extern "C" __global__ void __miss__ms() {
 	if (pldptr->refCount > 0) {
 		float kr = waveNum * pldptr->tpath;
 
-		float reflectionCoef = powf(1.0f, pldptr->refCount);
+		float relectance = params.reflectance;
+		float reflectionCoef = powf(relectance, pldptr->refCount);
 		float3 pol = pldptr->polarization;
 
 		complexFloat3 apE = exp(i * kr) * pol * reflectionCoef;

@@ -35,6 +35,7 @@ struct Params {
 	//float freq;
 	float waveNum;
 	float t_value;
+	float reflectance;
 
 	PolarizationTypes type;
 	OptixTraversableHandle handle;

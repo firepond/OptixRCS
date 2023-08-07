@@ -14,8 +14,8 @@
 #include <iostream>
 #include <execution>
 
-
 #include "RcsSpeedBranch/rcs_params.h"
+#include "reduceKernels.h"
 
 #ifndef TINYOBJLOADER_IMPLEMENTATION
 #define TINYOBJLOADER_IMPLEMENTATION
@@ -347,8 +347,7 @@ OptixAabb ReadObjMesh(const string& obj_filename, vector<float3>& vertices,
 class RcsPredictor {
 private:
 	const double c = 299792458.0;
-	const uint32_t max_trace_depth = 10;
-
+	
 	OptixAabb aabb;
 	char log[2048];  // For error reporting from OptiX creation functions
 	vector<float3> vertices;
@@ -399,6 +398,9 @@ private:
 public:
 	bool is_debug = false;
 	bool centerRelocate = false;
+	double reflectance = 1.0;
+	int max_trace_depth = 10;
+	PolarizationTypes type = HH;
 
 	RcsPredictor();
 
@@ -845,9 +847,9 @@ void RcsPredictor::initOptix() {
 	CUDA_CHECK(cudaMalloc((void**)&device_ptr, sizeof(Result)* size));
 	params.result = device_ptr;
 
-	//CUDA_SYNC_CHECK();
+	params.reflectance = reflectance;
 	params.handle = ias.handle;
-	params.type = VV;
+	params.type = type;
 
 	//CUdeviceptr d_param;
 	CUDA_CHECK(cudaMalloc(reinterpret_cast<void**>(&d_param), sizeof(Params)));
