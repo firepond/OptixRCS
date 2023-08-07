@@ -80,7 +80,7 @@ int main(int argc, char* argv[]) {
 	setConfigFromJson(theta_interval, "theta_interval", data);
 	setConfigFromJson(model_file, "model_file", data);
 	setConfigFromJson(csv_file, "csv_file", data);
-	PolarizationTypes polarization = HH;
+	PolarizationType polarization = HH;
 	if (data.contains("polarization")) {
 		string pol = data["polarization"];
 		if (pol == "HH") {
@@ -118,10 +118,10 @@ int main(int argc, char* argv[]) {
 
 	RcsPredictor predicitor;
 	predicitor.is_debug = is_debug;
-	predicitor.centerRelocate = center_relocate;
+	predicitor.center_relocate = center_relocate;
 	predicitor.max_trace_depth = trace_depth;
 	predicitor.reflectance = reflectance;
-	predicitor.type = polarization;
+	predicitor.pol_type = polarization;
 	predicitor.init(model_file, rays_per_wavelength, freq);
 
 	auto init_end = high_resolution_clock::now();

@@ -348,7 +348,7 @@ OptixAabb ReadObjMesh(const string& obj_filename, vector<float3>& vertices,
 class RcsPredictor {
 private:
 	const double c = 299792458.0;
-	
+
 	OptixAabb aabb;
 	char log[2048];  // For error reporting from OptiX creation functions
 	vector<float3> vertices;
@@ -362,7 +362,7 @@ private:
 	double radius;
 	double lamada;
 	double lamda_nums;
-	float waveNum;
+	float wave_num;
 
 	int rays_dimension;
 	int rays_per_lamada;
@@ -389,18 +389,18 @@ private:
 	std::vector<std::pair<ShapeType, HitGroupData>> hitgroup_datas;
 
 	CUstream stream;
-	CUdeviceptr d_param;
+	CUdeviceptr params_device;
 
 	void initOptix();
 	void calculateOrientation();
-	void calculateOutnormal();
+	void calculateOutNormals();
 	void moveModelToZero();
 public:
 	bool is_debug = false;
-	bool centerRelocate = false;
+	bool center_relocate = false;
 	double reflectance = 1.0;
 	int max_trace_depth = 10;
-	PolarizationTypes type = HH;
+	PolarizationType pol_type = HH;
 
 	RcsPredictor();
 
@@ -411,20 +411,20 @@ public:
 
 	double RcsPredictor::CalculateRcs(double phi, double theta) {
 		// phi theta in radian
-		float2 observer_pos = make_float2(phi, theta);
+		float2 observer_angle = make_float2(phi, theta);
 
 		//
 		// launch
 		//
-		params.observer_pos = observer_pos;
+		params.observer_angle = observer_angle;
 		calculateOrientation();
 
 		auto optix_start = high_resolution_clock::now();
 
-		CUDA_CHECK(cudaMemcpy(reinterpret_cast<void*>(d_param), &params,
+		CUDA_CHECK(cudaMemcpy(reinterpret_cast<void*>(params_device), &params,
 			sizeof(Params), cudaMemcpyHostToDevice));
 
-		OPTIX_CHECK(optixLaunch(pipeline, stream, d_param, sizeof(Params), &sbt,
+		OPTIX_CHECK(optixLaunch(pipeline, stream, params_device, sizeof(Params), &sbt,
 			rays_dimension, rays_dimension, /*depth=*/1));
 		CUDA_SYNC_CHECK();
 
@@ -479,7 +479,7 @@ RcsPredictor::~RcsPredictor() {
 	CUDA_CHECK(cudaFree(reinterpret_cast<void*>(sbt.hitgroupRecordBase)));
 
 	CUDA_CHECK(cudaFree(reinterpret_cast<void*>(results_device)));
-	CUDA_CHECK(cudaFree(reinterpret_cast<void*>(d_param)));
+	CUDA_CHECK(cudaFree(reinterpret_cast<void*>(params_device)));
 	CUDA_CHECK(cudaFree(reinterpret_cast<void*>(out_normals_device)));
 
 	OPTIX_CHECK(optixPipelineDestroy(pipeline));
@@ -522,7 +522,7 @@ void RcsPredictor::moveModelToZero() {
 
 
 
-void RcsPredictor::calculateOutnormal() {
+void RcsPredictor::calculateOutNormals() {
 	int triangle_num = mesh_indices.size();
 	out_normals = (float3*)malloc(sizeof(float3) * triangle_num);
 
@@ -547,7 +547,7 @@ void RcsPredictor::calculateOutnormal() {
 }
 
 void RcsPredictor::calculateOrientation() {
-	float2 outDirSph = params.observer_pos;
+	float2 outDirSph = params.observer_angle;
 	float3 dirN = make_float3(0);  // ray direction
 	float3 dirU = make_float3(0);
 	float3 dirR = make_float3(0);
@@ -594,10 +594,10 @@ void RcsPredictor::calculateOrientation() {
 	params.rayPosStepU = rayPosStepU;
 	params.rayDir = -dirN;
 
-	if (params.type == HH) {
+	if (pol_type == HH) {
 		polarization = make_float3(-sp, cp, 0.0f);
 	}
-	else if (params.type == VV) {
+	else if (pol_type == VV) {
 		polarization = make_float3(cp * ct, sp * ct, -st);
 	}
 	else {
@@ -610,10 +610,10 @@ void RcsPredictor::calculateOrientation() {
 void RcsPredictor::init(const string& obj_filename, int rays_per_lamada,
 	double freq) {
 	this->rays_per_lamada = rays_per_lamada;
-	float waveLen = c / freq;
-	float waveNum = 2 * M_PIf / waveLen;
+	float wave_length = c / freq;
+	float wave_num = 2 * M_PIf / wave_length;
 
-	params.waveNum = waveNum;
+	params.wave_num = wave_num;
 
 	aabb = ReadObjMesh(obj_filename, vertices, mesh_indices);
 
@@ -626,18 +626,18 @@ void RcsPredictor::init(const string& obj_filename, int rays_per_lamada,
 	lamda_nums = radius * 2 / lamada;
 	rays_dimension = ceil(lamda_nums * rays_per_lamada + 1.0f) + 1;
 	size = rays_dimension * rays_dimension;
-	if (is_debug) {
-		cout << "using " << rays_dimension << " rays perdimension" << endl;
-	}
 
-	float rayRadius = radius / rays_dimension;
-	float rayDiameter = rayRadius * 2;
-	float rayArea = rayDiameter * rayDiameter;
-	float t_value = (waveNum * rayArea) / (4.0f * M_PIf);
+	cout << "using " << rays_dimension << " rays perdimension" << endl;
+
+
+	float ray_radius = radius / rays_dimension;
+	float ray_diameter = ray_radius * 2;
+	float ray_area = ray_diameter * ray_diameter;
+	float t_value = (wave_num * ray_area) / (4.0f * M_PIf);
 
 	params.t_value = t_value;
 
-	if (centerRelocate) {
+	if (center_relocate) {
 		moveModelToZero();
 	}
 
@@ -651,7 +651,7 @@ void RcsPredictor::init(const string& obj_filename, int rays_per_lamada,
 
 	init_start = high_resolution_clock::now();
 
-	calculateOutnormal();
+	calculateOutNormals();
 
 	init_end = high_resolution_clock::now();
 	ms_int = duration_cast<milliseconds>(init_end - init_start);
@@ -891,14 +891,13 @@ void RcsPredictor::initOptix() {
 	CUDA_CHECK(cudaStreamCreate(&stream));
 
 	// allocate gpu memory to gpu pointer
-	CUDA_CHECK(cudaMalloc((void**)&results_device, sizeof(Result)* size));
+	CUDA_CHECK(cudaMalloc((void**)&results_device, sizeof(Result) * size));
 	params.result = results_device;
 
 	params.reflectance = reflectance;
 	params.handle = ias.handle;
-	params.type = type;
-	
-	CUDA_CHECK(cudaMalloc(reinterpret_cast<void**>(&d_param), sizeof(Params)));
+
+	CUDA_CHECK(cudaMalloc(reinterpret_cast<void**>(&params_device), sizeof(Params)));
 	CUDA_SYNC_CHECK();
 }
 

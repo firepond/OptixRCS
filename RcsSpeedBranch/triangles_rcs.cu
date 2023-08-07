@@ -117,10 +117,10 @@ extern "C" __global__ void __miss__ms() {
 
 	int ray_id = pldptr->ray_id;
 
-	float waveNum = params.waveNum;
+	float wave_num = params.wave_num;
 
-	float phi = params.observer_pos.x;
-	float the = params.observer_pos.y;
+	float phi = params.observer_angle.x;
+	float the = params.observer_angle.y;
 
 	float cp = cosf(phi);
 	float sp = sinf(phi);
@@ -133,7 +133,7 @@ extern "C" __global__ void __miss__ms() {
 	float3 dirP = make_float3(-sp, cp, 0.0);
 	float3 dirT = make_float3(cp * ct, sp * ct, -st);
 
-	float3 vecK = waveNum * ((dirX * cp + dirY * sp) * st + dirZ * ct);
+	float3 vecK = wave_num * ((dirX * cp + dirY * sp) * st + dirZ * ct);
 
 	using cuda::std::complex;
 	complex<float> AU = 0;
@@ -142,7 +142,7 @@ extern "C" __global__ void __miss__ms() {
 	complex<float> i = complex<float>(0.0f, 1.0f);
 	float t_value = params.t_value;
 	if (pldptr->refCount > 0) {
-		float kr = waveNum * pldptr->tpath;
+		float kr = wave_num * pldptr->tpath;
 
 		float relectance = params.reflectance;
 		float reflectionCoef = powf(relectance, pldptr->refCount);

@@ -8,7 +8,7 @@
 // H wave, [x,y,0]*ray_direction == 0
  //
  // V wave
-enum PolarizationTypes { HH, VV };
+enum PolarizationType { HH, VV };
 
 struct Result {
 	float au_real = 0;
@@ -19,25 +19,21 @@ struct Result {
 
 
 struct Params {
-	Result* result;
-	//unsigned int rays_per_dimension;
-	// phi, theta
-	float2 observer_pos;
-	//float3 box_center;
-	float3 polarization;
+	float wave_num;
+	float t_value;
+	float reflectance;
 
+	// phi, theta
+	float2 observer_angle;
+	float3 polarization;
 	float3 rayDir;
-	float3* out_normals;
 	float3 rayPosStepU;
 	float3 rayPosStepR;
 	float3 rayPosBegin;
 
-	//float freq;
-	float waveNum;
-	float t_value;
-	float reflectance;
+	float3* out_normals;
+	Result* result;
 
-	PolarizationTypes type;
 	OptixTraversableHandle handle;
 };
 
@@ -50,14 +46,8 @@ struct MissData {
 	float3 bg_color;
 };
 
-//struct SphereData {
-//    float3 center;
-//    float radius;
-//};
-
 struct MeshData {
 	float3* vertices;
-
 	uint3* indices;
 };
 
