@@ -13,62 +13,23 @@ extern "C" {
 
 
 
-static __forceinline__ __device__ void packPointer(void* ptr, unsigned int& i0,
-	unsigned int& i1) {
-	const unsigned long long uptr = reinterpret_cast<unsigned long long>(ptr);
-	i0 = uptr >> 32;
-	i1 = uptr & 0x00000000ffffffff;
-}
-
-
-
-static __forceinline__ __device__ void* unpackPointer(unsigned int i0,
-	unsigned int i1) {
-	const unsigned long long uptr =
-		static_cast<unsigned long long>(i0) << 32 | i1;
-	void* ptr = reinterpret_cast<void*>(uptr);
-	return ptr;
-}
-
-
-
-struct Payload {
-	unsigned int ray_id;  // unique id of the ray
-	int refCount;
-	float tpath;  // total path length until last bounes
-	float3 polarization;
-	float3 refNormal;
-};
-
-
-
 static __forceinline__ __device__ void trace(
 	OptixTraversableHandle handle, float3 ray_origin, float3 ray_direction,
-	Payload* pld_ptr, int offset, int stride, int miss) {
-	unsigned int p0, p1;
-	packPointer(pld_ptr, p0, p1);
+	int offset, int stride, int miss, unsigned int relCount, float tpath, float3 pol) {
+
 	float tmin = 1e-5f;
 	float tmax = 1e30f;
-	optixTrace(handle, ray_origin, ray_direction, tmin, tmax,
-		0.0f,  // rayTime
-		OptixVisibilityMask(1), OPTIX_RAY_FLAG_DISABLE_ANYHIT,
-		offset,  // SBT offset
-		stride,  // SBT stride(obj_count - 1)
-		miss,    // missSBTIndex
-		p0, p1);
+	unsigned path_uint = __float_as_uint(tpath);
+	unsigned pol1 = __float_as_uint(pol.x);
+	unsigned pol2 = __float_as_uint(pol.y);
+	unsigned pol3 = __float_as_uint(pol.z);
+	/*unsigned norm1 = __float_as_uint(out_normals.x);
+	unsigned norm2 = __float_as_uint(out_normals.y);
+	unsigned norm3 = __float_as_uint(out_normals.z);*/
+
+	optixTrace(handle, ray_origin, ray_direction, tmin, tmax, 0.0f, OptixVisibilityMask(1),
+		OPTIX_RAY_FLAG_DISABLE_ANYHIT, offset, stride, miss, relCount, path_uint, pol1, pol2, pol3);
 }
-
-
-
-static __forceinline__ __device__ Payload* getPayload() {
-	unsigned int p0, p1;
-	p0 = optixGetPayload_0();
-	p1 = optixGetPayload_1();
-	Payload* prd;
-	prd = static_cast<Payload*>(unpackPointer(p0, p1));
-	return prd;
-}
-
 
 
 __device__ __forceinline__ float3 getnormal(const unsigned int triId) {
@@ -86,6 +47,7 @@ __device__ __forceinline__ float3 getnormal(const unsigned int triId) {
 extern "C" __global__ void __raygen__rg() {
 	const uint3 idx = optixGetLaunchIndex();
 	const uint3 dim = optixGetLaunchDimensions();
+	int ray_id = idx.x + dim.x * idx.y;
 
 	float3 origin;
 	float3 direction;
@@ -95,30 +57,20 @@ extern "C" __global__ void __raygen__rg() {
 	origin = params.rayPosBegin + params.rayPosStepU * idU + params.rayPosStepR * idR;
 	direction = params.rayDir;
 
-	Payload pld;
-
-	pld.polarization = params.polarization;
-	pld.tpath = 0.0f;
-	int ray_id = idx.x + dim.x * idx.y;
-	pld.ray_id = ray_id;
-	pld.refCount = 0;
-
-	Payload* pldptr = &pld;
-
-	trace(params.handle, origin, direction, pldptr, 0, 1,
-		0);
+	trace(params.handle, origin, direction, 0, 1,
+		0, 0u, 0.0f, params.polarization);
 }
 
 
 
 extern "C" __global__ void __miss__ms() {
-	unsigned int p0, p1;
-	Payload* pldptr = getPayload();
-	packPointer(pldptr, p0, p1);
+	
 	float3 ray_direction = optixGetWorldRayDirection();
 	float3 ray_ori = optixGetWorldRayOrigin();
 
-	int ray_id = pldptr->ray_id;
+	const uint3 idx = optixGetLaunchIndex();
+	const uint3 dim = optixGetLaunchDimensions();
+	int ray_id = idx.x + dim.x * idx.y;
 
 	float wave_num = params.wave_num;
 
@@ -144,12 +96,20 @@ extern "C" __global__ void __miss__ms() {
 	complex<float> AR = 0;
 	complex<float> i = complex<float>(0.0f, 1.0f);
 	float t_value = params.t_value;
-	if (pldptr->refCount > 0) {
-		float kr = wave_num * pldptr->tpath;
+	unsigned int refCount = optixGetPayload_0();
+	if (refCount > 0) {
+		//float kr = wave_num * pldptr->tpath;
+		float tpath = __uint_as_float(optixGetPayload_1());
+		float kr = wave_num * tpath;
+		float3 pol;
+		pol.x = __uint_as_float(optixGetPayload_2());
+		pol.y = __uint_as_float(optixGetPayload_3());
+		pol.z = __uint_as_float(optixGetPayload_4());
+
 
 		float relectance = params.reflectance;
-		float reflectionCoef = powf(relectance, pldptr->refCount);
-		float3 pol = pldptr->polarization;
+		float reflectionCoef = powf(relectance, refCount);
+		//pol = pldptr->polarization;
 
 		complexFloat3 apE = exp(i * kr) * pol * reflectionCoef;
 
@@ -174,10 +134,10 @@ extern "C" __global__ void __miss__ms() {
 			printf("waveNum: %f\n", waveNum);
 		}*/
 	}
-	params.result[4*ray_id] = AU.real();
-	params.result[4*ray_id + 1] = AU.imag();
-	params.result[4*ray_id + 2] = AR.real();
-	params.result[4*ray_id + 3] = AR.imag();
+	params.result[4 * ray_id] = AU.real();
+	params.result[4 * ray_id + 1] = AU.imag();
+	params.result[4 * ray_id + 2] = AR.real();
+	params.result[4 * ray_id + 3] = AR.imag();
 }
 
 
@@ -190,15 +150,19 @@ extern "C" __global__ void __closesthit__triangle() {
 
 	float ray_tmax = optixGetRayTmax();
 
-	Payload* pldptr = getPayload();
+	//Payload* pldptr = getPayload();
 
 	float3 out_normal = params.out_normals[tri_id];
 
 	float3 hit_point = ray_ori + ray_tmax * ray_dir;
 	float3 reflect_dir = reflect(ray_dir, out_normal);
 
+	float tpath = __uint_as_float(optixGetPayload_1());
 
-	float3 pol = pldptr->polarization;
+	float3 pol;
+	pol.x = __uint_as_float(optixGetPayload_2());
+	pol.y = __uint_as_float(optixGetPayload_3());
+	pol.z = __uint_as_float(optixGetPayload_4());
 
 	float3 hitNormal = out_normal;
 	float3 dirCrossNormal = cross(ray_dir, hitNormal);
@@ -214,12 +178,14 @@ extern "C" __global__ void __closesthit__triangle() {
 	float polCompU = dot(pol, polU);
 	float polCompR = dot(pol, polR);
 
-	float total_path_length = ray_tmax + pldptr->tpath;
-	pldptr->tpath = total_path_length;
-	pldptr->polarization = -polCompR * refPolR + polCompU * refPolU;
+	float total_path_length = ray_tmax + tpath;
+	/*pldptr->tpath = total_path_length;*/
+	pol = -polCompR * refPolR + polCompU * refPolU;
+	//pldptr->polarization = pol;
 
-	pldptr->refNormal = out_normal;
-	pldptr->refCount += 1;
+	//pldptr->refNormal = out_normal;
+	unsigned int refCount = optixGetPayload_0() + 1u;
+	//pldptr->refCount = refCount;
 
-	trace(params.handle, hit_point, reflect_dir, pldptr, 0, 1, 0);
+	trace(params.handle, hit_point, reflect_dir, /*pldptr,*/ 0, 1, 0, refCount, total_path_length, pol);
 }

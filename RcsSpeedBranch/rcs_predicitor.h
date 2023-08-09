@@ -743,7 +743,7 @@ void RcsPredictor::initOptix() {
 	pipeline_compile_options.usesMotionBlur = false;
 	pipeline_compile_options.traversableGraphFlags =
 		OPTIX_TRAVERSABLE_GRAPH_FLAG_ALLOW_ANY;
-	pipeline_compile_options.numPayloadValues = 2;
+	pipeline_compile_options.numPayloadValues = 5;
 	pipeline_compile_options.numAttributeValues = 5;
 
 	pipeline_compile_options.exceptionFlags = OPTIX_EXCEPTION_FLAG_TRACE_DEPTH;
