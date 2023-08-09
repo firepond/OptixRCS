@@ -736,9 +736,15 @@ void RcsPredictor::initOptix() {
 	OptixModuleCompileOptions module_compile_options = {};
 	module_compile_options.maxRegisterCount =
 		OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT;
-	module_compile_options.optLevel = OPTIX_COMPILE_OPTIMIZATION_LEVEL_0;
+	if (is_debug) {
+		module_compile_options.optLevel = OPTIX_COMPILE_OPTIMIZATION_LEVEL_0;
+		module_compile_options.debugLevel = OPTIX_COMPILE_DEBUG_LEVEL_FULL;
+	}
+	else {
+		module_compile_options.optLevel = OPTIX_COMPILE_OPTIMIZATION_LEVEL_3;
+		module_compile_options.debugLevel = OPTIX_COMPILE_DEBUG_LEVEL_NONE;
+	}
 
-	module_compile_options.debugLevel = OPTIX_COMPILE_DEBUG_LEVEL_FULL;
 
 	pipeline_compile_options.usesMotionBlur = false;
 	pipeline_compile_options.traversableGraphFlags =
