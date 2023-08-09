@@ -641,7 +641,7 @@ double RcsPredictor::CalculateRcs(double phi, double theta) {
 
 
 	Result* result = reduce(results_device, size);
-	CUDA_SYNC_CHECK();
+	//CUDA_SYNC_CHECK();
 	au = std::complex<double>(result[0], result[1]);
 	ar = std::complex<double>(result[2], result[3]);
 

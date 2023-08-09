@@ -59,7 +59,7 @@ Result* reduce(Result* g_idata, int size) {
 	int block_count = ceil((double)size / reduceDim);
 	cudaMalloc((void**)&out_device, sizeof(Result) * block_count * 4);
 	Result* out_device_holder = out_device;
-	cudaDeviceSynchronize();
+	//cudaDeviceSynchronize();
 
 	while (size > 1) {
 		if (size <= reduceDim) {
@@ -72,7 +72,7 @@ Result* reduce(Result* g_idata, int size) {
 				out_device, size);
 		}
 
-		cudaDeviceSynchronize();
+		//cudaDeviceSynchronize();
 
 		// swap to_reduce_device and out_device
 		Result* temp;
@@ -86,6 +86,6 @@ Result* reduce(Result* g_idata, int size) {
 	Result* result_out = (float*)malloc(sizeof(float) * 4);
 	cudaMemcpy(result_out, out_device, sizeof(float) * 4, cudaMemcpyDeviceToHost);
 	cudaFree(reinterpret_cast<void*>(out_device_holder));
-	cudaDeviceSynchronize();
+	//cudaDeviceSynchronize();
 	return result_out;
 }
