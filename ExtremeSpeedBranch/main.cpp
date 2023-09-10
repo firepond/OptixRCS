@@ -104,7 +104,7 @@ int main(int argc, char* argv[]) {
 	}
 
 	std::ofstream out_stream;
-	out_stream.open(csv_file);
+	out_stream.open(csv_file, std::ios::app);
 
 	int phi_count = ceil((phi_end - phi_start) / phi_interval) + 1;
 	int theta_count = ceil((theta_end - theta_start) / theta_interval) + 1;
@@ -145,19 +145,30 @@ int main(int argc, char* argv[]) {
 
 			double rcs = 10 * log10(rcs_ori);
 
-			// output format: freq, phi, theta, rcs
-			cout << model_name << ": ";
-			cout << "freq = " << freq << ", ";
-			cout << "phi = " << cur_phi << ", ";
-			cout << "theta = " << cur_theta << ", ";
-			cout << "rcs_dbsm = " << rcs << ", ";
-			cout << "rcs_sm = " << rcs_ori << endl << endl;
-			out_stream << trace_depth << ", " << cur_phi << ", " << cur_theta << ", "
-				<< rcs << ", " << endl;
+			//// output format: freq, phi, theta, rcs
+			//cout << model_name << ": ";
+			//cout << "freq = " << freq << ", ";
+			//cout << "phi = " << cur_phi << ", ";
+			//cout << "theta = " << cur_theta << ", ";
+			//cout << "rcs_dbsm = " << rcs << ", ";
+			//cout << "rcs_sm = " << rcs_ori << endl << endl;
+			//out_stream << freq << ", " << cur_phi << ", " << cur_theta << ", "
+			//	<< rcs << ", " << endl;
 		}
 	}
 	auto rcs_end = high_resolution_clock::now();
 	ms_int = duration_cast<milliseconds>(rcs_end - rcs_start);
+
+	//out_stream << predicitor.getTraceDepth() << "," << ms_int.count() << endl;
+	{
+		// show memory usage of GPU
+		size_t free_byte;
+		size_t total_byte;
+		auto cuda_status = cudaMemGetInfo(&free_byte, &total_byte);
+		size_t used_byte = total_byte - free_byte;
+		double used_db = (double)used_byte / 1024 / 1024;
+		out_stream << predicitor.getDimension() << ", " << used_db << endl;
+	}
 	std::cout << "OptiX calculation time for " << phi_count * theta_count
 		<< " points : " << ms_int.count() << "ms, averge: "
 		<< (double)ms_int.count() / phi_count * theta_count << endl;

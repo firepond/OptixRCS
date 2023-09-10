@@ -516,6 +516,8 @@ endfunction()
 
 add_subdirectory( TrianglesRCS  )
 add_subdirectory( RcsSpeedBranch  )
+add_subdirectory( CudaTest )
+add_subdirectory( ExtremeSpeedBranch )
 
 # Our sutil library.  The rules to build it are found in the subdirectory.
 add_subdirectory(sutil)

@@ -51,6 +51,8 @@ typedef SbtRecord<HitGroupData> HitGroupSbtRecord;
 
 enum class ShapeType { Mesh };
 
+
+
 static void ContextLog(unsigned int level, const char* tag, const char* message,
 	void* /*cbdata */) {
 	std::cerr << "[" << std::setw(2) << level << "][" << std::setw(12) << tag
@@ -68,6 +70,7 @@ struct InstanceAccelData {
 	CUdeviceptr d_output_buffer;
 	CUdeviceptr d_instances_buffer;
 };
+
 
 void BuildGAS(OptixDeviceContext context, GeometryAccelData& gas,
 	OptixBuildInput& build_input) {
@@ -394,6 +397,8 @@ private:
 	void calculateOutNormals();
 	void moveModelToZero();
 
+
+
 public:
 	int rays_dimension;
 
@@ -409,6 +414,14 @@ public:
 	void RcsPredictor::init(const string& obj_filename, int rays_per_lamada,
 		double freq);
 	double RcsPredictor::CalculateRcs(double phi, double theta);
+
+	int getDimension() {
+		return rays_dimension;
+	}
+
+	int getTraceDepth() {
+		return max_trace_depth;
+	}
 
 };
 
