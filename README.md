@@ -1,2 +1,2 @@
 # OptixRCS
-RCS calculation based on SBR method, using NVIDIA optix.
+OpitxRCS is possibly the world's fastest RCS (Radar Cross Section) calculator, boasting speeds that are at least 50 times faster than the open-source RCS software, RaytrAMP[](https://github.com/RedBlight/RaytrAMP). Built upon the Shooting and Bouncing Rays (SBR) method and leveraging the power of NVIDIA's OptiX framework, OpitxRCS aims to provide an efficient solution for RCS computation needs, especially for synthetic data generation for AI.
